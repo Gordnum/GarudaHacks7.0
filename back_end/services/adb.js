@@ -7,7 +7,7 @@ const log = require('./logger');
 function pemicu_pesan() {
     let nomor_darurat = config.NOMOR_TELFON;
     if(nomor_darurat.startsWith('0')) {
-        nomor_darurat = '62' + nomor_darurat.slice(1); //agar berubah dari 08xxxx jadi 62xxxx
+        nomor_darurat = '62' + nomor_darurat.slice(1);
     }
 
     const pesan_template = "PESAN INI MERUPAKAN PESAN OTOMATIS DARI SISTEM, terdapat sebuah tindak kejahatan di lokasi ini TOLONG SEGERA KE LOKASI YANG DI BERIKAN!";
@@ -16,19 +16,30 @@ function pemicu_pesan() {
     log.info("Mengetik pesan di whatsapp...");
 
     const cmd_wa = `adb -s localhost:5555 shell am start -a android.intent.action.VIEW -d "https://api.whatsapp.com/send?phone=${nomor_darurat}&text=${pesan_encoded}"`;
+    
     exec(cmd_wa, (err) => {
         if (err) {
             log.error("Gagal membuka whatsapp", err.message);
             return;
         }
-        log.success("Pesan sudah diketik");
+        log.success("WhatsApp berhasil dipicu, menunggu room chat terbuka...");
+        
+        // 💡 KITA NAIKIN JEDA JADI 3 DETIK (3000ms) BIAR ROOM CHAT WA TERBUKA SEMPURNA DULU
         setTimeout(() => {
-            log.info("Menekan tombol mengirim");
-            exec(`adb -s localhost:5555 shell input keyevent 22 && adb -s localhost:5555 shell input keyevent 66`);
-        }, 1500);
+            log.info("Menekan tombol mengirim secara otomatis...");
+            
+            const kirim_wa_cmd = `adb -s localhost:5555 shell input keyevent 22 && adb -s localhost:5555 shell input keyevent 22 && adb -s localhost:5555 shell input keyevent 66`;
+            
+            exec(kirim_wa_cmd, (err) => {
+                if (err) {
+                    log.error("Gagal menekan tombol kirim", err.message);
+                    return;
+                }
+                log.success("Pesan otomatis WhatsApp berhasil terkirim!");
+            });
+        }, 3000); 
     });
 }
-
 function pemicu_telfon() {
     const nomor_darurat = config.NOMOR_TELFON;
     
