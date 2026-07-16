@@ -1,3 +1,4 @@
+// services/adb.js
 const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -13,12 +14,12 @@ function pemicu_pesan() {
     // Menggunakan format JID resmi WhatsApp untuk Android Intent
     const whatsappJid = `${nomor_darurat}@s.whatsapp.net`;
     
-    // Hilangkan tanda khusus (seperti !) agar string aman di-input via shell
-    const pesan_template = "PESAN INI MERUPAKAN PESAN OTOMATIS DARI SISTEM terdapat sebuah tindak kejahatan di lokasi ini TOLONG SEGERA KE LOKASI YANG DI BERIKAN";
+    // Kita buat variabel link lokasi tiruan untuk demo (atau bisa diganti dinamis)
+    const link_lokasi = "http://googleusercontent.com/maps.google.com/?q=-6.2574,106.6183";
 
     log.info("Membuka chat WhatsApp via Android Component Intent...");
 
-    // 💡 SOLUSI UTAMA: Paksa masuk langsung ke komponen Conversation (Room Chat) target secara spesifik
+    // Membuka komponen chat room spesifik ke nomor target
     const cmd_wa = `adb -s localhost:5555 shell am start -n com.whatsapp/.Conversation -a android.intent.action.SENDTO --es jid "${whatsappJid}"`;
     
     exec(cmd_wa, (err) => {
@@ -28,33 +29,49 @@ function pemicu_pesan() {
         }
         log.success("WhatsApp room chat terbuka!");
         
-        // Kasih jeda 2 detik (2000ms) agar room chat target benar-benar render sempurna
+        // Jeda 2.5 detik agar chat room termuat sempurna sebelum mulai mengetik
         setTimeout(() => {
-            log.info("Mengetik pesan darurat...");
+            log.info("Mengetik bagian 1: Pembuka sistem...");
             
-            // Masukkan teks pesan langsung ke kolom input chat yang aktif
-            const cmd_ketik = `adb -s localhost:5555 shell "input text '${pesan_template}'"`;
-            
-            exec(cmd_ketik, (err) => {
-                if (err) {
-                    log.error("Gagal mengetik pesan", err.message);
-                    return;
-                }
-                log.success("Pesan terketik otomatis!");
+            // Bagian 1: Pesan Sistem
+            exec(`adb -s localhost:5555 shell "input text 'PESAN INI MERUPAKAN PESAN OTOMATIS DARI SISTEM '"`, (err) => {
+                if (err) return log.error("Gagal mengetik bagian 1", err.message);
 
-                // Jeda 800ms setelah mengetik, baru hajar tombol kirim (Keyevent 66 / ENTER)
+                // Jeda 300ms sebelum lanjut mengetik bagian 2
                 setTimeout(() => {
-                    log.info("Menekan tombol kirim...");
-                    exec(`adb -s localhost:5555 shell input keyevent 66`, (err) => {
-                        if (err) {
-                            log.error("Gagal menekan tombol kirim", err.message);
-                            return;
-                        }
-                        log.success("✅ Pesan WhatsApp sukses terkirim dan pas sasaran!");
+                    log.info("Mengetik bagian 2: Status bahaya...");
+                    
+                    // Bagian 2: Informasi Kejahatan
+                    exec(`adb -s localhost:5555 shell "input text 'Terdapat sebuah tindak kejahatan di lokasi ini '"`, (err) => {
+                        if (err) return log.error("Gagal mengetik bagian 2", err.message);
+
+                        // Jeda 300ms sebelum mengetik link lokasi
+                        setTimeout(() => {
+                            log.info("Mengetik bagian 3: Tautan lokasi...");
+                            
+                            // Bagian 3: Instruksi & Link Google Maps
+                            exec(`adb -s localhost:5555 shell "input text 'TOLONG SEGERA KE LOKASI: ${link_lokasi}'"`, (err) => {
+                                if (err) return log.error("Gagal mengetik bagian 3", err.message);
+                                
+                                log.success("Semua bagian teks berhasil diketik dengan rapi!");
+
+                                // Jeda 800ms setelah mengetik selesai, lalu hajar tombol kirim (ENTER)
+                                setTimeout(() => {
+                                    log.info("Menekan tombol kirim...");
+                                    exec(`adb -s localhost:5555 shell input keyevent 66`, (err) => {
+                                        if (err) {
+                                            log.error("Gagal menekan tombol kirim", err.message);
+                                            return;
+                                        }
+                                        log.success("✅ [SUKSES KILAT] Pesan WhatsApp terkirim dengan presisi!");
+                                    });
+                                }, 800);
+                            });
+                        }, 300);
                     });
-                }, 800);
+                }, 300);
             });
-        }, 2000); 
+        }, 2500); 
     });
 }
 
@@ -89,8 +106,10 @@ function pemicu_telfon() {
                                 return;
                             }
                             log.success("Panggilan keluar berhasil dipicu!");
+
+                            // Begitu tombol panggilan ditekan, tunggu 500ms lalu langsung eksekusi WhatsApp
                             setTimeout(() => {
-                                log.info("Telepon sudah jalan di background, langsung alihkan ke WhatsApp...");
+                                log.info("Telepon berjalan, mengalihkan ke proses kirim pesan...");
                                 pemicu_pesan();
                             }, 500);
                         });
