@@ -5,10 +5,47 @@ const log = require('./logger');
 function jalankanCommand(cmd) {
     return new Promise((resolve) => {
         exec(cmd, (err, stdout, stderr) => {
-            if (err) resolve({ sukses: false, error: err.message });
+            if (err) resolve({ sukses: false, error: err.message, stdout });
             else resolve({ sukses: true, output: stdout });
         });
     });
+}
+
+function cariPortAdb() {
+    return new Promise((resolve) => {
+        exec("nmap -p 30000-50000 localhost | grep 'open'", (err, stdout) => {
+            if (err || !stdout) {
+                resolve(null);
+                return;
+            }
+            const baris = stdout.trim().split('\n');
+            for (let b of baris) {
+                if (b.includes('tcp') && b.includes('open')) {
+                    const port = b.split('/')[0].trim();
+                    resolve(port);
+                    return;
+                }
+            }
+            resolve(null);
+        });
+    });
+}
+
+async function pastikanKoneksiAdb() {
+    const port = await cariPortAdb();
+    if (!port) {
+        log.error("Port Wireless Debugging tidak terdeteksi! Pastikan fiturnya aktif.");
+        return false;
+    }
+    
+    log.info(`Mencoba menyambungkan ke Local ADB via port: ${port}...`);
+    const konek = await jalankanCommand(`adb connect 127.0.0.1:${port}`);
+    
+    if (konek.sukses && konek.output.includes("connected")) {
+        log.success("Koneksi Local ADB berhasil mapan!");
+        return true;
+    }
+    return false;
 }
 
 async function ketikTeksBertahap(teks) {
@@ -28,6 +65,9 @@ async function ketikTeksBertahap(teks) {
 }
 
 async function pemicu_pesan() {
+    const terhubung = await pastikanKoneksiAdb();
+    if (!terhubung) return;
+
     let nomor_tujuan = config.NOMOR_TELFON;
     if (!nomor_tujuan) {
         log.error("NOMOR_TELFON tidak ditemukan di konfigurasi!");
@@ -75,6 +115,9 @@ async function pemicu_pesan() {
 }
 
 async function pemicu_telfon() {
+    const terhubung = await pastikanKoneksiAdb();
+    if (!terhubung) return;
+
     const nomor_darurat = config.NOMOR_TELFON;
 
     if (!nomor_darurat) {
