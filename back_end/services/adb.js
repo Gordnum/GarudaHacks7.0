@@ -13,9 +13,9 @@ function pemicu_pesan() {
     const pesan_template = "PESAN INI MERUPAKAN PESAN OTOMATIS DARI SISTEM, terdapat sebuah tindak kejahatan di lokasi ini TOLONG SEGERA KE LOKASI YANG DI BERIKAN!";
     const pesan_encoded = encodeURIComponent(pesan_template);
 
-    log.info("Mengetik pesan di whatsapp...");
+    log.info("Membuka WhatsApp dan menempelkan pesan secepat kilat...");
 
-    // Pakai bendera -p com.whatsapp biar langsung bypass pilihan browser
+    // Intent ini langsung mengirimkan text yang ter-encode ke draft chat nomor tujuan
     const cmd_wa = `adb -s localhost:5555 shell am start -a android.intent.action.VIEW -d "https://api.whatsapp.com/send?phone=${nomor_darurat}&text=${pesan_encoded}" -p com.whatsapp`;
     
     exec(cmd_wa, (err) => {
@@ -23,14 +23,22 @@ function pemicu_pesan() {
             log.error("Gagal membuka whatsapp", err.message);
             return;
         }
-        log.success("WhatsApp terbuka!");
+        log.success("WhatsApp terbuka dengan pesan instan!");
         
-        // Jeda 1.2 detik saja (1200ms) - cukup buat nunggu chat room WA render teks otomatisnya
         setTimeout(() => {
-            log.info("Menekan tombol mengirim...");
-            // Kirim keyevent untuk menekan tombol kirim di WA
-            exec(`adb -s localhost:5555 shell input keyevent 22 && adb -s localhost:5555 shell input keyevent 22 && adb -s localhost:5555 shell input keyevent 66`);
-        }, 1200); 
+            log.info("Menembakkan tombol kirim...");
+            
+            // Mengirimkan navigasi DPAD_RIGHT (22) secara simultan lalu ENTER (66) untuk langsung menembak tombol kirim hijau di WA
+            const kirim_cepat_cmd = `adb -s localhost:5555 shell "input keyevent 22 && input keyevent 22 && input keyevent 66"`;
+            
+            exec(kirim_cepat_cmd, (err) => {
+                if (err) {
+                    log.error("Gagal mengirim", err.message);
+                    return;
+                }
+                log.success("✅ Pesan WhatsApp sukses terkirim secepat kilat!");
+            });
+        }, 600); // Hanya butuh 0.6 detik untuk render chat sebelum di-send!
     });
 }
 
@@ -65,10 +73,6 @@ function pemicu_telfon() {
                                 return;
                             }
                             log.success("Panggilan keluar berhasil dipicu!");
-
-                            // 💡 DI SINI KUNCINYA MAS RUSDI! 
-                            // Begitu tombol telepon dipencet, langsung tunggu 500ms (setengah detik) 
-                            // langsung hantam buka WhatsApp tanpa babibu!
                             setTimeout(() => {
                                 log.info("Telepon sudah jalan di background, langsung alihkan ke WhatsApp...");
                                 pemicu_pesan();
