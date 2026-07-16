@@ -14,7 +14,7 @@ function test() {
         if(nilai_sensor >= konfigurasi.BATAS_ANCAMAN) {
             clearInterval(simulasi_batas);
             log.alert("BATAS THREATS SUDAH TERLEWAT, BERSIAP MENELFON\n");
-            
+            pemicu_telfon();
         }
     }, 500);
 }

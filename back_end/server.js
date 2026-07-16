@@ -9,5 +9,5 @@ app.get('/fetch-signal', (req, res) => {
 });
 
 app.listen(config.PORT, () => {
-    console.log(`Server aktif di port ${port}`);
+    console.log(`Server aktif di port ${PORT}`);
 });
