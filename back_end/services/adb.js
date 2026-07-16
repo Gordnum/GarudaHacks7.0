@@ -5,7 +5,7 @@ const config = require('../config/device');
 const log = require('./logger');
 
 function pemicu_pesan() {
-    const nomor_darurat = config.NOMOR_TELFON;
+    let nomor_darurat = config.NOMOR_TELFON;
     if(nomor_darurat.startsWith('0')) {
         nomor_darurat = '62' + nomor_darurat.slice(1); //agar berubah dari 08xxxx jadi 62xxxx
     }
