@@ -1,3 +1,5 @@
+# File untuk menyimpan bukti kriminalitas
+
 import cv2
 import os
 import time

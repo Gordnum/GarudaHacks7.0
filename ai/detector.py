@@ -24,7 +24,7 @@ class Detector:
             "cell phone"
         }
 
-        # ROI size around wrist
+        # ROI size sekitar wrist
         self.handCropSize = 150
 
 
@@ -125,7 +125,7 @@ class Detector:
 
                     "confidence": float(box.conf[0]),
 
-                    # convert ROI coords back to image coords
+                    # convert koordinat ROI ke koordinat gambar
 
                     "bbox": (
                         rx1 + x1,
