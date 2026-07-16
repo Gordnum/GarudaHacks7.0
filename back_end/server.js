@@ -1,13 +1,15 @@
 const express = require('express');
 const app = express();
 const config = require('./config/device');
+const { test } = require('./services/indikator');
 app.use(express.json());
 
 app.get('/fetch-signal', (req, res) => {
     console.log("Menerima sinyal dari curl");
+    test();
     res.json({success: true, message: "Sinyal berhasil dikirim!"});
 });
 
 app.listen(config.PORT, () => {
-    console.log(`Server aktif di port ${port}`);
+    console.log(`Server aktif di port ${config.PORT}`);
 });

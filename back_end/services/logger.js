@@ -31,7 +31,7 @@ const logger = {
     },
 
     alert: (pesan) => {
-        console.log(`$time_message() ${COLORS.ALERT} | [ALERT] ${pesan}${COLORS.RESET}`);
+        console.log(`{$time_message}() ${COLORS.ALERT} | [ALERT] ${pesan}${COLORS.RESET}`);
     }
 }
 
