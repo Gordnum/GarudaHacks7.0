@@ -1,6 +1,16 @@
-import cv2
+# Main control file
 
-# untuk buka window
+import cv2
+import time
+from pose import PosesEstimator
+from person_manager import PersonManager
+from action import ActionRecognizer
+from threat import ThreatEngine
+from ui import UI
+from detector import Detector
+from recorder import IncidentRecorder
+
+# Untuk buka window
 cap = cv2.VideoCapture(0)
 
 # Set resolusi window
@@ -11,20 +21,80 @@ if not cap.isOpened():
     print("Camera tidak bisa dibuka")
     exit()
 
+pose = PosesEstimator(model_path = 'pose_landmarker.task', num_poses = 2)
+personManager = PersonManager()
+actionRecognizer = ActionRecognizer()
+threatEngine = ThreatEngine()
+ui = UI()
+detector = Detector()
+recorder = IncidentRecorder()
+
+prevTime = time.time()
+
 while True:
     ret, frame = cap.read()
+
+    if not ret:
+        break
+
+    rawFrame = frame.copy()
 
     if not ret:
         print("Frame gagal")
         break
 
+    # Membuat timestamp dalam ms
+    timestamp_ms = int(time.time() * 1000)
+
+    frame, detectedPeople = pose.detect(frame, timestamp_ms)
+
+    people = personManager.update(detectedPeople)
+
+    detections = detector.detect(frame, people)
+
+    highThreat = False
+
+    # Result for the rig (VERY IMPORTANT)
+    for person in people:
+        action = actionRecognizer.recognize(person)
+        score = threatEngine.update(person, action, detections)
+        level = threatEngine.level(score)
+        frame = ui.drawPerson(frame, person, level)
+
+        if score >= 80:
+            highThreat = True
+
+        print(f"Person {person.id}: {action.value}, threat score: {score}, level: {level}")
+
+    
+    current = time.time()
+
+    fps = 1 / (current - prevTime)
+
+    prevTime = current
+
+    ui.drawObjects(frame, detections)
+
+    for person in people:
+
+        level = threatEngine.level(person.threatScore)
+
+        ui.drawPerson(frame, person, level)
+
+    ui.drawFPS(frame, fps)
+
+    if highThreat:
+        ui.drawAlarm(frame)
+        recorder.save(rawFrame, people)
+        
     cv2.imshow("Camera", frame)
 
     key = cv2.waitKey(1)
 
-    
-    if key == 27:
+    # Press 'ESC' untuk menutup kamera
+    if key == 27:  
         break
 
 cap.release()
+pose.close()
 cv2.destroyAllWindows()
