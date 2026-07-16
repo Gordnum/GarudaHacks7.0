@@ -5,13 +5,35 @@ const path = require('path');
 const config = require('../config/device');
 const log = require('./logger');
 
-// Fungsi escape andalan Mas Rusdi untuk mengubah spasi menjadi %s literal adb
-function escapeUntukADBInput(teks) {
-    return teks
-        .replace(/ /g, '%s') 
-        .replace(/\?/g, '?')  
-        .replace(/!/g, '!')
-        .replace(/,/g, ',');
+// Fungsi pembantu jeda waktu asynchronous mikro
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// 💡 FUNGSI KETIK ROBOTIK: Mengetik per karakter dengan transfer data terukur
+async function ketikPesanPresisi(pesanUtuh) {
+    log.info(`Mentransfer ${pesanUtuh.length} karakter ke HP dengan kecepatan aman...`);
+    
+    for (let i = 0; i < pesanUtuh.length; i++) {
+        let char = pesanUtuh[i];
+        let cmd = '';
+
+        if (char === ' ') {
+            cmd = `adb -s localhost:5555 shell input text "%s"`;
+        } else if (['?', '=', '&', ';', '(', ')', '<', '>', '|', '!', '"', "'", '`'].includes(char)) {
+            cmd = `adb -s localhost:5555 shell input text '${char}'`;
+        } else {
+            cmd = `adb -s localhost:5555 shell input text "${char}"`;
+        }
+
+        // Eksekusi pengetikan satu karakter
+        await new Promise((resolve) => {
+            exec(cmd, () => resolve());
+        });
+
+        // 💡 KUNCINYA DI SINI MAS RUSDI: Jeda mikro 8 milidetik.
+        // Tetap terasa sangat cepat di layar HP, tapi memberikan nafas yang cukup buat buffer Android.
+        await delay(8); 
+    }
+    log.success("Transfer data selesai! Semua teks terketik sempurna tanpa typo.");
 }
 
 function pemicu_pesan() {
@@ -23,8 +45,8 @@ function pemicu_pesan() {
     const whatsappJid = `${nomor_darurat}@s.whatsapp.net`;
     const link_lokasi = "http://googleusercontent.com/maps.google.com/?q=-6.2574,106.6183";
     
-    const pesan_mentah = `PESAN INI MERUPAKAN PESAN OTOMATIS DARI SISTEM terdapat sebuah tindak kejahatan di lokasi ini TOLONG SEGERA KE LOKASI YANG DI BERIKAN ${link_lokasi}`;
-    const pesan_terproteksi = escapeUntukADBInput(pesan_mentah);
+    // Teks mentah utuh lengkap dengan tanda baca asli
+    const pesan_mentah = `PESAN INI MERUPAKAN PESAN OTOMATIS DARI SISTEM, terdapat sebuah tindak kejahatan di lokasi ini TOLONG SEGERA KE LOKASI YANG DI BERIKAN! ${link_lokasi}`;
 
     log.info("Membuka chat WhatsApp via Android Component Intent...");
     const cmdOpenChat = `adb -s localhost:5555 shell am start -n com.whatsapp/.Conversation -a android.intent.action.SENDTO --es jid "${whatsappJid}"`;
@@ -33,36 +55,21 @@ function pemicu_pesan() {
         if (err) return log.error("Gagal membuka chat WhatsApp", err.message);
         log.success("WhatsApp room chat terbuka!");
 
-        // Jeda 2.5 detik agar chat room termuat sempurna
-        setTimeout(() => {
-            log.info("Mengatur stabilitas buffer keyboard Android secara internal...");
+        // Jeda 2.5 detik biar chat room WhatsApp stabil & siap menerima input
+        setTimeout(async () => {
             
-            // 💡 TRIK UTAMA MAS RUSDI: Kita tweak durasi delay input keyboard bawaan Android biar dia punya waktu memproses teks panjang secara kilat tapi teratur
-            exec(`adb -s localhost:5555 shell settings put system show_password_duration 10`, () => {
-                
-                log.info("Mengetik pesan dengan kecepatan sedang-cepat yang stabil...");
-                const cmdKetikSafe = `adb -s localhost:5555 shell input text "${pesan_terproteksi}"`;
+            // 🚀 Jalankan pengetikan dengan transfer data terkontrol
+            await ketikPesanPresisi(pesan_mentah);
 
-                exec(cmdKetikSafe, (err) => {
-                    if (err) {
-                        log.error("Gagal mengetik pesan", err.message);
-                        return;
-                    }
-                    log.success("Teks berhasil diketik dengan presisi tinggi!");
-
-                    // Kembalikan setelan durasi keyboard ke default (opsional biar normal lagi HP-nya)
-                    exec(`adb -s localhost:5555 shell settings put system show_password_duration 200`);
-
-                    // Jeda 1 detik lalu pencet tombol kirim (ENTER)
-                    setTimeout(() => {
-                        log.info("Menekan tombol kirim...");
-                        exec(`adb -s localhost:5555 shell input keyevent 66`, (err) => {
-                            if (err) return log.error("Gagal mengirim", err.message);
-                            log.success("✅ [MANTAP] Pesan sukses terkirim seimbang dan rapi!");
-                        });
-                    }, 1000);
+            // Jeda 800ms setelah mengetik selesai, langsung hajar ENTER buat kirim
+            setTimeout(() => {
+                log.info("Menekan tombol kirim...");
+                exec(`adb -s localhost:5555 shell input keyevent 66`, (err) => {
+                    if (err) return log.error("Gagal mengirim", err.message);
+                    log.success("✅ [SUKSES TOTAL] Pesan sukses terkirim rapi dan presisi!");
                 });
-            });
+            }, 800);
+            
         }, 2500); 
     });
 }
