@@ -1,4 +1,4 @@
-# FIle untuk menampung "object" person, sebuah person ada data apa saja
+# File untuk menampung "object" person, sebuah person ada data apa saja
 
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
@@ -58,20 +58,20 @@ class Person:
     threatScore: float = 0.0
 
     # Riwayat action
-    actionHistory: List[str] = field(default_factory=list)
+    actionHistory: List[str] = field(default_factory = list)
 
     # Menyimpan landmark frame sebelumnya
     previousLandmarks: Optional[List] = None
 
     # Kecepatan tubuh
-    velocity: Dict[str, float] = field(default_factory=dict)
+    velocity: Dict[str, float] = field(default_factory = dict)
 
     # Dictionary hasil mapping
-    landmarks: Dict[str, object] = field(init=False)
+    landmarks: Dict[str, object] = field(init = False)
 
-    poseHistory: deque = field(default_factory=lambda: deque(maxlen=5))
+    poseHistory: deque = field(default_factory = lambda: deque(maxlen = 5))
 
-    objects: List[dict] = field(default_factory=list)
+    objects: List[dict] = field(default_factory = list)
 
     def __post_init__(self):
         """

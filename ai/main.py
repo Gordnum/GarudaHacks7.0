@@ -5,6 +5,8 @@ import time
 from pose import PosesEstimator
 from person_manager import PersonManager
 from action import ActionRecognizer
+from threat import ThreatEngine
+from ui import UI
 
 # Untuk buka window
 cap = cv2.VideoCapture(0)
@@ -20,6 +22,10 @@ if not cap.isOpened():
 pose = PosesEstimator(model_path = 'pose_landmarker.task', num_poses = 2)
 personManager = PersonManager()
 actionRecognizer = ActionRecognizer()
+threatEngine = ThreatEngine()
+ui = UI()
+
+prevTime = time.time()
 
 while True:
     ret, frame = cap.read()
@@ -34,12 +40,37 @@ while True:
 
     people = personManager.update(detectedPeople)
 
+    highThreat = False
+
     # Result for the rig (VERY IMPORTANT)
     for person in people: 
         action = actionRecognizer.recognize(person)
-        
-        print(f"Person {person.id}: {action.value}")
+        score = threatEngine.update(person, action)
+        level = threatEngine.level(score)
+        frame = ui.drawPerson(frame, person, level)
 
+        if score > 80:
+            highThreat = True
+        
+        print(f"Person {person.id}: {action.value}, threat score: {score}, level: {level}")
+    
+    current = time.time()
+
+    fps = 1 / (current - prevTime)
+
+    prevTime = current
+
+    for person in people:
+
+        level = threatEngine.level(person.threatScore)
+
+        ui.drawPerson(frame, person, level)
+
+    ui.drawFPS(frame, fps)
+
+    if highThreat:
+        ui.drawAlarm(frame)
+        
     cv2.imshow("Camera", frame)
 
     key = cv2.waitKey(1)

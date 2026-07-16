@@ -1,4 +1,4 @@
-#File untuk mengatur orang-orang yang terdeteksi dalam kamera
+# File untuk mengatur orang-orang yang terdeteksi dalam kamera
 
 from person import Person
 from geometry_utils import GeometryUtils
