@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const config = require('./konfigurasi/device');
+const config = require('./config/device');
 app.use(express.json());
 
 app.get('/fetch-signal', (req, res) => {

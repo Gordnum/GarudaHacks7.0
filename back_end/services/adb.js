@@ -1,7 +1,7 @@
 const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const config = require('../konfigurasi/device');
+const config = require('../config/device');
 const log = require('./logger');
 
 function pemicu_telfon() {
