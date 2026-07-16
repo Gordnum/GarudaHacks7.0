@@ -125,26 +125,30 @@ async function pemicu_telfon() {
         return;
     }
 
-    log.info(`[TELP] Membuka dialer dengan nomor target: ${nomor_darurat}...`);
+    log.info(`[TELP] Membuka aplikasi telepon sistem secara paksa...`);
     
-    const cmdOpenDialer = `adb shell am start -a android.intent.action.DIAL -d tel:${nomor_darurat}`;
-    const dialerRes = await jalankanCommand(cmdOpenDialer);
+    // Membuka dialer menggunakan Android Monkey tool (Pasti terbuka di semua device)
+    const cmdForceOpenDialer = `adb shell monkey -p com.android.contacts -c android.intent.category.LAUNCHER 1 || adb shell monkey -p com.google.android.dialer -c android.intent.category.LAUNCHER 1 || adb shell monkey -p com.samsung.android.dialer -c android.intent.category.LAUNCHER 1`;
+    await jalankanCommand(cmdForceOpenDialer);
 
-    if (!dialerRes.sukses) {
-        log.error("Gagal membuka aplikasi dialer", dialerRes.error);
-        return;
-    }
-
+    // Jeda 1 detik agar aplikasi dialer siap di layar, lalu kita ketik nomornya lewat input teks
     setTimeout(async () => {
-        log.info("[TELP] Menekan tombol panggil otomatis...");
-        const callRes = await jalankanCommand(`adb shell input keyevent 5`);
-        
-        if (callRes.sukses) {
-            log.success("✅ Panggilan telepon berhasil dipicu!");
-        } else {
-            log.error("Gagal memicu panggilan suara", callRes.error);
-        }
-    }, 800);
+        log.info(`[TELP] Mengetik nomor darurat: ${nomor_darurat}...`);
+        await jalankanCommand(`adb shell input text "${nomor_darurat}"`);
+
+        // Jeda 500ms setelah mengetik nomor, lalu langsung tekan tombol CALL (Keyevent 5)
+        setTimeout(async () => {
+            log.info("[TELP] Menekan tombol panggil fisik...");
+            const callRes = await jalankanCommand(`adb shell input keyevent 5`);
+            
+            if (callRes.sukses) {
+                log.success("✅ Panggilan telepon berhasil dipicu secara visual!");
+            } else {
+                log.error("Gagal menekan tombol panggil", callRes.error);
+            }
+        }, 500);
+
+    }, 1000);
 }
 
-module.exports = { pemicu_telfon, pemicu_pesan };
+module.exports = { pemicu_telfon, pemicu_pesan };   
