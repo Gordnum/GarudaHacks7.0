@@ -5,6 +5,7 @@ app.use(express.json());
 
 app.get('/fetch-signal', (req, res) => {
     console.log("Menerima sinyal dari curl");
+    test();
     res.json({success: true, message: "Sinyal berhasil dikirim!"});
 });
 
