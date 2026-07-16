@@ -125,30 +125,31 @@ async function pemicu_telfon() {
         return;
     }
 
-    log.info(`[TELP] Membuka aplikasi dialer dengan nomor: ${nomor_darurat}...`);
+    log.info("[TELP] Memaksa perangkat bangun ke Home Screen...");
+    await jalankanCommand("adb shell input keyevent 3"); // Keyevent 3 = HOME Button
     
-    // Perintah alternatif yang sangat universal menggunakan skema VIEW URI
-    const cmdDial = `adb shell am start -a android.intent.action.VIEW -d tel:${nomor_darurat}`;
-    const dialRes = await jalankanCommand(cmdDial);
-
-    if (!dialRes.sukses) {
-        log.error("Gagal memicu layar dialer", dialRes.error);
-        return;
-    }
-
-    log.success("Aplikasi dialer berhasil dipicu ke depan layar!");
-
-    // Jeda 1.2 detik agar UI dialer terbuka penuh dan siap menerima input fisik telepon
     setTimeout(async () => {
-        log.info("[TELP] Menekan tombol panggil fisik...");
-        const callRes = await jalankanCommand(`adb shell input keyevent 5`);
-        
-        if (callRes.sukses) {
-            log.success("✅ Panggilan telepon berhasil dipicu secara visual!");
-        } else {
-            log.error("Gagal menekan tombol panggil", callRes.error);
-        }
-    }, 1200);
+        log.info("[TELP] Membuka Dialer secara paksa menggunakan Keyevent...");
+        await jalankanCommand("adb shell input keyevent 5"); // Keyevent 5 = CALL (Akan membuka dialer jika belum menelpon)
+
+        setTimeout(async () => {
+            log.info(`[TELP] Mengetik nomor darurat: ${nomor_darurat}...`);
+            await jalankanCommand(`adb shell input text "${nomor_darurat}"`);
+
+            setTimeout(async () => {
+                log.info("[TELP] Memulai panggilan...");
+                const callRes = await jalankanCommand("adb shell input keyevent 5");
+                
+                if (callRes.sukses) {
+                    log.success("✅ Panggilan telepon berhasil dipicu secara visual!");
+                } else {
+                    log.error("Gagal menekan tombol panggil", callRes.error);
+                }
+            }, 800);
+
+        }, 1200);
+
+    }, 500);
 }
 
 module.exports = { pemicu_telfon, pemicu_pesan };
