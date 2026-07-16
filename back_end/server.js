@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const config = require('./config/device');
+const { test } = require('./services/indikator');
 app.use(express.json());
 
 app.get('/fetch-signal', (req, res) => {
