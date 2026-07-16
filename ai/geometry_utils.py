@@ -20,7 +20,6 @@ class GeometryUtils:
         """
         Titik tengah dua landmark.
         """
-
         return (
             (p1.x + p2.x) / 2,
             (p1.y + p2.y) / 2
@@ -80,7 +79,6 @@ class GeometryUtils:
         """
         Apakah p1 berada di atas p2?
         """
-
         return p1.y < p2.y
 
     @staticmethod

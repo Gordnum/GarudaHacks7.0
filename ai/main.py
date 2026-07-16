@@ -4,6 +4,7 @@ import cv2
 import time
 from pose import PosesEstimator
 from person_manager import PersonManager
+from action import ActionRecognizer
 
 # Untuk buka window
 cap = cv2.VideoCapture(0)
@@ -18,6 +19,7 @@ if not cap.isOpened():
 
 pose = PosesEstimator(model_path = 'pose_landmarker.task', num_poses = 2)
 personManager = PersonManager()
+actionRecognizer = ActionRecognizer()
 
 while True:
     ret, frame = cap.read()
@@ -28,9 +30,15 @@ while True:
 
     timestamp_ms = int(time.time() * 1000)
 
-    frame, landmarks = pose.detect(frame, timestamp_ms)
+    frame, detectedPeople = pose.detect(frame, timestamp_ms)
 
-    people = personManager.update(landmarks)
+    people = personManager.update(detectedPeople)
+
+    # Result for the rig (VERY IMPORTANT)
+    for person in people: 
+        action = actionRecognizer.recognize(person)
+        
+        print(f"Person {person.id}: {action.value}")
 
     cv2.imshow("Camera", frame)
 
