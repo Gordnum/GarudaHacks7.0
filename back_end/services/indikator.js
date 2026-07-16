@@ -1,37 +1,29 @@
-const konfigurasi = require('../config/device');
-const adb = require('./adb'); 
+const config = require('../config/device');
+const { pemicu_telfon } = require('./adb'); // Pastikan impor fungsi ini benar
 const log = require('./logger');
 
 function test() {
-    let nilai_sensor = 0;
-    log.info("\nSIMULASI AI (DUMMY)");
-    log.alert(`BATAS THREATS ADALAH ${konfigurasi.BATAS_ANCAMAN}`);
-
-    // Kita log di sini untuk memastikan fungsi dari adb.js terbaca dengan benar di Termux
-    log.info(`[DEBUG] Isi modul ADB yang terbaca: ${Object.keys(adb).join(', ') || 'KOSONG!'}`);
-
-    const simulasi_batas = setInterval(() => {
-        nilai_sensor += 10;
-        log.info(`[SIMULASI] NILAI SENSOR SAAT INI : ${nilai_sensor}`);
-
-        if(nilai_sensor >= konfigurasi.BATAS_ANCAMAN) {
-            clearInterval(simulasi_batas);
-            log.alert("BATAS THREATS SUDAH TERLEWAT, BERSIAP MENELFON\n");
-            
-            // Panggil langsung dari objek modul adb agar terhindar dari masalah destructuring
-            if (typeof adb.pemicu_telfon === 'function') {
-                adb.pemicu_telfon();
-            } else {
-                log.error("Fungsi pemicu_telfon tidak ditemukan di adb.js!");
-            }
-
-            if (typeof adb.pemicu_pesan === 'function') {
-                adb.pemicu_pesan();
-            } else {
-                log.error("Fungsi pemicu_pesan tidak ditemukan di adb.js!");
-            }
+    let nilaiSensor = 0;
+    let sudahDipicu = false;
+    log.info("\nSIMULASI SENSOR DIMULAI");
+    log.alert(`Batas Maksimal set di angka: ${config.BATAS_MAKSIMAL}`);
+    
+    const intervalId = setInterval(() => {
+        if (sudahDipicu) {
+            clearInterval(intervalId);
+            return;
         }
-    }, 500);
+
+        nilaiSensor += 10;
+        log.info(`[SIMULASI] Nilai Sensor Saat Ini: ${nilaiSensor}`);
+
+        if (nilaiSensor >= config.BATAS_MAKSIMAL) {
+            sudahDipicu = true;
+            clearInterval(intervalId);
+            log.alert("Threshold melebihi batas, BERSIAP MENELFON\n");
+            pemicu_telfon(); // Memanggil fungsi dari adb.js yang benar
+        }
+    }, 1000);
 }
 
 module.exports = { test };
