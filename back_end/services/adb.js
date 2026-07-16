@@ -125,31 +125,30 @@ async function pemicu_telfon() {
         return;
     }
 
-    log.info(`[TELP] Membuka aplikasi telepon sistem secara paksa...`);
+    log.info(`[TELP] Membuka aplikasi dialer dengan nomor: ${nomor_darurat}...`);
     
-    // Membuka dialer menggunakan Android Monkey tool (Pasti terbuka di semua device)
-    const cmdForceOpenDialer = `adb shell monkey -p com.android.contacts -c android.intent.category.LAUNCHER 1 || adb shell monkey -p com.google.android.dialer -c android.intent.category.LAUNCHER 1 || adb shell monkey -p com.samsung.android.dialer -c android.intent.category.LAUNCHER 1`;
-    await jalankanCommand(cmdForceOpenDialer);
+    // Perintah alternatif yang sangat universal menggunakan skema VIEW URI
+    const cmdDial = `adb shell am start -a android.intent.action.VIEW -d tel:${nomor_darurat}`;
+    const dialRes = await jalankanCommand(cmdDial);
 
-    // Jeda 1 detik agar aplikasi dialer siap di layar, lalu kita ketik nomornya lewat input teks
+    if (!dialRes.sukses) {
+        log.error("Gagal memicu layar dialer", dialRes.error);
+        return;
+    }
+
+    log.success("Aplikasi dialer berhasil dipicu ke depan layar!");
+
+    // Jeda 1.2 detik agar UI dialer terbuka penuh dan siap menerima input fisik telepon
     setTimeout(async () => {
-        log.info(`[TELP] Mengetik nomor darurat: ${nomor_darurat}...`);
-        await jalankanCommand(`adb shell input text "${nomor_darurat}"`);
-
-        // Jeda 500ms setelah mengetik nomor, lalu langsung tekan tombol CALL (Keyevent 5)
-        setTimeout(async () => {
-            log.info("[TELP] Menekan tombol panggil fisik...");
-            const callRes = await jalankanCommand(`adb shell input keyevent 5`);
-            
-            if (callRes.sukses) {
-                log.success("✅ Panggilan telepon berhasil dipicu secara visual!");
-            } else {
-                log.error("Gagal menekan tombol panggil", callRes.error);
-            }
-        }, 500);
-
-    }, 1000);
+        log.info("[TELP] Menekan tombol panggil fisik...");
+        const callRes = await jalankanCommand(`adb shell input keyevent 5`);
+        
+        if (callRes.sukses) {
+            log.success("✅ Panggilan telepon berhasil dipicu secara visual!");
+        } else {
+            log.error("Gagal menekan tombol panggil", callRes.error);
+        }
+    }, 1200);
 }
-console.log("test");
 
-module.exports = { pemicu_telfon, pemicu_pesan };   
+module.exports = { pemicu_telfon, pemicu_pesan };
