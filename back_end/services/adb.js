@@ -15,7 +15,7 @@ function pemicu_pesan() {
 
     log.info("Mengetik pesan di whatsapp...");
 
-    const cmd_wa = `adb -s localhost:5555 shell am start -a android.intent.action.VIEW -d "https://api.whatsapp.com/send?phone=${nomor_darurat}&text=${teks_encoded}"`;
+    const cmd_wa = `adb -s localhost:5555 shell am start -a android.intent.action.VIEW -d "https://api.whatsapp.com/send?phone=${nomor_darurat}&text=${pesan_encoded}"`;
     exec(cmd_wa, (err) => {
         if (err) {
             log.error("Gagal membuka whatsapp", err.message);
