@@ -15,8 +15,8 @@ function pemicu_pesan() {
 
     log.info("Membuka WhatsApp dan menempelkan pesan secepat kilat...");
 
-    // Intent ini langsung mengirimkan text yang ter-encode ke draft chat nomor tujuan
-    const cmd_wa = `adb -s localhost:5555 shell am start -a android.intent.action.VIEW -d "https://api.whatsapp.com/send?phone=${nomor_darurat}&text=${pesan_encoded}" -p com.whatsapp`;
+    // 💡 GANTI PAKAI INI MAS RUSDI! Menggunakan skema whatsapp:// dan flag -n langsung ke komponen WhatsApp biar anti-meleset
+    const cmd_wa = `adb -s localhost:5555 shell am start -a android.intent.action.VIEW -d "whatsapp://send?phone=${nomor_darurat}&text=${pesan_encoded}"`;
     
     exec(cmd_wa, (err) => {
         if (err) {
@@ -25,10 +25,11 @@ function pemicu_pesan() {
         }
         log.success("WhatsApp terbuka dengan pesan instan!");
         
+        // Jeda 1 detik (1000ms) agar transisi layar HP Samsung kamu stabil ke room chat
         setTimeout(() => {
             log.info("Menembakkan tombol kirim...");
             
-            // Mengirimkan navigasi DPAD_RIGHT (22) secara simultan lalu ENTER (66) untuk langsung menembak tombol kirim hijau di WA
+            // Mengirimkan navigasi tombol kirim otomatis
             const kirim_cepat_cmd = `adb -s localhost:5555 shell "input keyevent 22 && input keyevent 22 && input keyevent 66"`;
             
             exec(kirim_cepat_cmd, (err) => {
@@ -38,7 +39,7 @@ function pemicu_pesan() {
                 }
                 log.success("✅ Pesan WhatsApp sukses terkirim secepat kilat!");
             });
-        }, 600); // Hanya butuh 0.6 detik untuk render chat sebelum di-send!
+        }, 1000); 
     });
 }
 
