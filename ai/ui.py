@@ -9,8 +9,7 @@ class UI:
 
         self.FONT = cv2.FONT_HERSHEY_SIMPLEX
 
-    # Main draw
-
+    # Main Draw
     def drawPerson(self, frame, person, level):
 
         self.drawBbox(frame, person)
@@ -20,9 +19,39 @@ class UI:
         self.drawThreatBar(frame, person)
 
         return frame
+    
+    # Draw objects
+    def drawObjects(self, frame, detections):
+
+        for obj in detections:
+
+            x1, y1, x2, y2 = obj["bbox"]
+
+            label = obj["label"]
+
+            confidence = obj["confidence"]
+
+            color = (255, 0, 0)   # Biru untuk object detector
+
+            cv2.rectangle(
+                frame,
+                (x1, y1),
+                (x2, y2),
+                color,
+                2
+            )
+
+            cv2.putText(
+                frame,
+                f"{label} {confidence:.2f}",
+                (x1, y1 - 10),
+                self.FONT,
+                0.6,
+                color,
+                2
+            )
 
     # Bounding Box (Agar visualisasi rapi)
-
     def drawBbox(self, frame, person):
 
         if person.bbox is None:
@@ -41,7 +70,6 @@ class UI:
         )
 
     # Text
-
     def drawInfo(self, frame, person, level):
 
         if person.bbox is None:
@@ -92,7 +120,6 @@ class UI:
         )
 
     # Threat Bar
-
     def drawThreatBar(self, frame, person):
 
         if person.bbox is None:
@@ -126,7 +153,6 @@ class UI:
         )
 
     # Alarm
-
     def drawAlarm(self, frame):
 
         h, w = frame.shape[:2]
@@ -150,7 +176,6 @@ class UI:
         )
 
     # FPS
-
     def drawFPS(self, frame, fps):
 
         cv2.putText(
@@ -164,7 +189,6 @@ class UI:
         )
 
     # Colors
-
     def getLevelColor(self, score):
 
         if score < 20:

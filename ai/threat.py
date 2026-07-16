@@ -27,7 +27,13 @@ class ThreatEngine:
             Action.UNKNOWN: 0
         }
 
-    def update(self, person, action):
+        self.OBJECT_SCORES = {
+            "knife": 50,
+            "backpack": 10,
+            "cell phone" : 10
+        }
+
+    def update(self, person, action, detections):
 
         score = person.threatScore
 
@@ -36,6 +42,24 @@ class ThreatEngine:
 
         # Action score
         score += self.ACTION_SCORE[action]
+
+        # Object score
+        labels = []
+
+        for obj in detections:
+
+            label = obj["label"]
+
+            labels.append(label)
+
+            score += self.OBJECT_SCORES.get(label, 0)
+
+        # Combination rules
+        if action == Action.PUNCHING and "knife" in labels:
+            score += 30
+
+        if action == Action.RUNNING and "knife" in labels:
+            score += 20
 
         # Clamping
         score = max(0, min(score, self.MAX_SCORE))

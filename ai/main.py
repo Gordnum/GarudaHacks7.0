@@ -7,6 +7,7 @@ from person_manager import PersonManager
 from action import ActionRecognizer
 from threat import ThreatEngine
 from ui import UI
+from detector import Detector
 
 # Untuk buka window
 cap = cv2.VideoCapture(0)
@@ -24,6 +25,7 @@ personManager = PersonManager()
 actionRecognizer = ActionRecognizer()
 threatEngine = ThreatEngine()
 ui = UI()
+detector = Detector()
 
 prevTime = time.time()
 
@@ -40,25 +42,30 @@ while True:
 
     people = personManager.update(detectedPeople)
 
+    detections = detector.detect(frame, people)
+
     highThreat = False
 
     # Result for the rig (VERY IMPORTANT)
-    for person in people: 
+    for person in people:
         action = actionRecognizer.recognize(person)
-        score = threatEngine.update(person, action)
+        score = threatEngine.update(person, action, detections)
         level = threatEngine.level(score)
         frame = ui.drawPerson(frame, person, level)
 
-        if score > 80:
+        if score >= 80:
             highThreat = True
-        
+
         print(f"Person {person.id}: {action.value}, threat score: {score}, level: {level}")
+
     
     current = time.time()
 
     fps = 1 / (current - prevTime)
 
     prevTime = current
+
+    ui.drawObjects(frame, detections)
 
     for person in people:
 
