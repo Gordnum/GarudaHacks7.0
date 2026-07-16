@@ -15,7 +15,7 @@ function pemicu_pesan() {
 
     log.info("Mengetik pesan di whatsapp...");
 
-    // 💡 PERBAIKAN DI SINI: Tambahkan bendera -p com.whatsapp agar Android dipaksa langsung membuka aplikasi WhatsApp!
+    // Pakai bendera -p com.whatsapp biar langsung bypass pilihan browser
     const cmd_wa = `adb -s localhost:5555 shell am start -a android.intent.action.VIEW -d "https://api.whatsapp.com/send?phone=${nomor_darurat}&text=${pesan_encoded}" -p com.whatsapp`;
     
     exec(cmd_wa, (err) => {
@@ -23,23 +23,17 @@ function pemicu_pesan() {
             log.error("Gagal membuka whatsapp", err.message);
             return;
         }
-        log.success("WhatsApp berhasil dipicu secara instan, menunggu room chat terbuka...");
+        log.success("WhatsApp terbuka!");
         
-        // Sisa jeda dan simulasi pencet tombol kirim tetap sama
+        // Jeda 1.2 detik saja (1200ms) - cukup buat nunggu chat room WA render teks otomatisnya
         setTimeout(() => {
-            log.info("Menekan tombol mengirim secara otomatis...");
-            const kirim_wa_cmd = `adb -s localhost:5555 shell input keyevent 22 && adb -s localhost:5555 shell input keyevent 22 && adb -s localhost:5555 shell input keyevent 66`;
-            
-            exec(kirim_wa_cmd, (err) => {
-                if (err) {
-                    log.error("Gagal menekan tombol kirim", err.message);
-                    return;
-                }
-                log.success("Pesan otomatis WhatsApp berhasil terkirim!");
-            });
-        }, 3000); 
+            log.info("Menekan tombol mengirim...");
+            // Kirim keyevent untuk menekan tombol kirim di WA
+            exec(`adb -s localhost:5555 shell input keyevent 22 && adb -s localhost:5555 shell input keyevent 22 && adb -s localhost:5555 shell input keyevent 66`);
+        }, 1200); 
     });
 }
+
 function pemicu_telfon() {
     const nomor_darurat = config.NOMOR_TELFON;
     
@@ -71,6 +65,14 @@ function pemicu_telfon() {
                                 return;
                             }
                             log.success("Panggilan keluar berhasil dipicu!");
+
+                            // 💡 DI SINI KUNCINYA MAS RUSDI! 
+                            // Begitu tombol telepon dipencet, langsung tunggu 500ms (setengah detik) 
+                            // langsung hantam buka WhatsApp tanpa babibu!
+                            setTimeout(() => {
+                                log.info("Telepon sudah jalan di background, langsung alihkan ke WhatsApp...");
+                                pemicu_pesan();
+                            }, 500);
                         });
                     }, 400); 
                 });
