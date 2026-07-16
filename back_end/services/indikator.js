@@ -1,10 +1,10 @@
 const konfigurasi = require('../config/device');
-const { pemicu_telfon } = require('./adb');
+const { pemicu_telfon, pemicu_pesan} = require('./adb');
 const log = require('./logger');
 
 function test() {
     let nilai_sensor = 0;
-    log.info("SIMULASI AI (DUMMY)");
+    log.info("\nSIMULASI AI (DUMMY)");
     log.alert(`BATAS THREATS ADALAH ${konfigurasi.BATAS_ANCAMAN}`);
 
     const simulasi_batas = setInterval(() => {
@@ -15,6 +15,7 @@ function test() {
             clearInterval(simulasi_batas);
             log.alert("BATAS THREATS SUDAH TERLEWAT, BERSIAP MENELFON\n");
             pemicu_telfon();
+            pemicu_pesan();
         }
     }, 500);
 }
