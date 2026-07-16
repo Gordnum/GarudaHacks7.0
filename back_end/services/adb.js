@@ -8,32 +8,33 @@ const log = require('./logger');
 // Fungsi pembantu jeda waktu asynchronous mikro
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// 💡 FUNGSI KETIK ROBOTIK: Mengetik per karakter dengan transfer data terukur
+// 💡 FUNGSI KETIK ROBOTIK: Mengetik per karakter murni via kabel USB
 async function ketikPesanPresisi(pesanUtuh) {
-    log.info(`Mentransfer ${pesanUtuh.length} karakter ke HP dengan kecepatan aman...`);
+    log.info(`Mentransfer ${pesanUtuh.length} karakter ke HP via USB dengan kecepatan aman...`);
     
     for (let i = 0; i < pesanUtuh.length; i++) {
         let char = pesanUtuh[i];
         let cmd = '';
 
         if (char === ' ') {
-            cmd = `adb -s localhost:5555 shell input text "%s"`;
+            // Android ADB mengenali %s sebagai spasi murni
+            cmd = `adb shell input text "%s"`;
         } else if (['?', '=', '&', ';', '(', ')', '<', '>', '|', '!', '"', "'", '`'].includes(char)) {
-            cmd = `adb -s localhost:5555 shell input text '${char}'`;
+            // Kurung karakter khusus dengan petik tunggal agar aman dari parsing bash shell laptop
+            cmd = `adb shell input text '${char}'`;
         } else {
-            cmd = `adb -s localhost:5555 shell input text "${char}"`;
+            cmd = `adb shell input text "${char}"`;
         }
 
-        // Eksekusi pengetikan satu karakter
+        // Eksekusi pengetikan satu karakter secara lokal/kabel
         await new Promise((resolve) => {
             exec(cmd, () => resolve());
         });
 
-        // 💡 KUNCINYA DI SINI MAS RUSDI: Jeda mikro 8 milidetik.
-        // Tetap terasa sangat cepat di layar HP, tapi memberikan nafas yang cukup buat buffer Android.
+        // Jeda mikro 8 milidetik agar keyboard Samsung memproses karakter secara berurutan
         await delay(8); 
     }
-    log.success("Transfer data selesai! Semua teks terketik sempurna tanpa typo.");
+    log.success("Transfer data via USB selesai! Semua teks terketik sempurna.");
 }
 
 function pemicu_pesan() {
@@ -49,8 +50,8 @@ function pemicu_pesan() {
     const pesan_mentah = `PESAN INI MERUPAKAN PESAN OTOMATIS DARI SISTEM, terdapat sebuah tindak kejahatan di lokasi ini TOLONG SEGERA KE LOKASI YANG DI BERIKAN! ${link_lokasi}`;
 
     log.info("Membuka chat WhatsApp via Android Component Intent...");
-    const cmdOpenChat = `adb -s localhost:5555 shell am start -n com.whatsapp/.Conversation -a android.intent.action.SENDTO --es jid "${whatsappJid}"`;
-
+    const cmdOpenChat = `adb shell am start -n com.whatsapp/.Conversation -a android.intent.action.SENDTO --es jid "${whatsappJid}"`;
+    
     exec(cmdOpenChat, (err) => {
         if (err) return log.error("Gagal membuka chat WhatsApp", err.message);
         log.success("WhatsApp room chat terbuka!");
@@ -58,15 +59,16 @@ function pemicu_pesan() {
         // Jeda 2.5 detik biar chat room WhatsApp stabil & siap menerima input
         setTimeout(async () => {
             
-            // 🚀 Jalankan pengetikan dengan transfer data terkontrol
+            // 🚀 Jalankan pengetikan dengan transfer data terkontrol via kabel
             await ketikPesanPresisi(pesan_mentah);
 
             // Jeda 800ms setelah mengetik selesai, langsung hajar ENTER buat kirim
             setTimeout(() => {
                 log.info("Menekan tombol kirim...");
-                exec(`adb -s localhost:5555 shell input keyevent 66`, (err) => {
+                const cmdKirim = `adb shell input keyevent 66`;
+                exec(cmdKirim, (err) => {
                     if (err) return log.error("Gagal mengirim", err.message);
-                    log.success("✅ [SUKSES TOTAL] Pesan sukses terkirim rapi dan presisi!");
+                    log.success("✅ [SUKSES TOTAL] Pesan sukses terkirim rapi dan presisi via USB!");
                 });
             }, 800);
             
@@ -78,10 +80,10 @@ function pemicu_telfon() {
     const nomor_darurat = config.NOMOR_TELFON;
     
     log.info("Menutup sisa aplikasi dialer lama...");
-    exec(`adb -s localhost:5555 shell am force-stop com.samsung.android.dialer`, () => {
+    exec(`adb shell am force-stop com.samsung.android.dialer`, () => {
         
         log.info("Membuka aplikasi dialer HP via adb...");
-        const cmd_telfon = `adb -s localhost:5555 shell am start -a android.intent.action.DIAL`;
+        const cmd_telfon = `adb shell am start -a android.intent.action.DIAL`;
 
         exec(cmd_telfon, (err) => {
             if (err){
@@ -91,7 +93,7 @@ function pemicu_telfon() {
 
             setTimeout(() => {
                 log.info(`Mengetik nomor target: ${nomor_darurat}...`);
-                exec(`adb -s localhost:5555 shell input text ${nomor_darurat}`, (err) => {
+                exec(`adb shell input text ${nomor_darurat}`, (err) => {
                     if (err){
                         log.error("Gagal mengetik nomor: ", err.message);
                         return;
@@ -99,7 +101,7 @@ function pemicu_telfon() {
 
                     setTimeout(() => {
                         log.info("Menekan tombol telefon (CALL)...");
-                        exec(`adb -s localhost:5555 shell input keyevent 5`, (err) => {
+                        exec(`adb shell input keyevent 5`, (err) => {
                             if (err) {
                                 log.error("Gagal menekan tombol: ", err.message);
                                 return;
