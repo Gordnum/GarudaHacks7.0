@@ -150,5 +150,6 @@ async function pemicu_telfon() {
 
     }, 1000);
 }
+console.log("test");
 
 module.exports = { pemicu_telfon, pemicu_pesan };   
