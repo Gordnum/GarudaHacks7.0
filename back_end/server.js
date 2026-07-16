@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const config = require('./config/device');
+const config = require('./konfigurasi/device');
 app.use(express.json());
 
 app.get('/fetch-signal', (req, res) => {
@@ -9,5 +9,5 @@ app.get('/fetch-signal', (req, res) => {
 });
 
 app.listen(config.PORT, () => {
-    console.log(`Server aktif di port ${PORT}`);
+    console.log(`Server aktif di port ${config.PORT}`);
 });
