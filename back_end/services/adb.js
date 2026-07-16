@@ -8,22 +8,21 @@ const log = require('./logger');
 // Fungsi pembantu jeda waktu asynchronous mikro
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// 💡 FUNGSI KETIK ROBOTIK: Mengetik per karakter murni via kabel USB
+// 💡 FUNGSI KETIK ROBOTIK: Mengetik per karakter dengan flag target device yang jelas
 async function ketikPesanPresisi(pesanUtuh) {
-    log.info(`Mentransfer ${pesanUtuh.length} karakter ke HP via USB dengan kecepatan aman...`);
+    const targetDevice = config.CONNECTED_DEVICE_WA || 'RF8M82DNY8Y';
+    log.info(`Mentransfer ${pesanUtuh.length} karakter ke HP [${targetDevice}] dengan kecepatan aman...`);
     
     for (let i = 0; i < pesanUtuh.length; i++) {
         let char = pesanUtuh[i];
         let cmd = '';
 
         if (char === ' ') {
-            // Android ADB mengenali %s sebagai spasi murni
-            cmd = `adb shell input text "%s"`;
+            cmd = `adb -s ${targetDevice} shell input text "%s"`;
         } else if (['?', '=', '&', ';', '(', ')', '<', '>', '|', '!', '"', "'", '`'].includes(char)) {
-            // Kurung karakter khusus dengan petik tunggal agar aman dari parsing bash shell laptop
-            cmd = `adb shell input text '${char}'`;
+            cmd = `adb -s ${targetDevice} shell input text '${char}'`;
         } else {
-            cmd = `adb shell input text "${char}"`;
+            cmd = `adb -s ${targetDevice} shell input text "${char}"`;
         }
 
         // Eksekusi pengetikan satu karakter secara lokal/kabel
@@ -31,91 +30,109 @@ async function ketikPesanPresisi(pesanUtuh) {
             exec(cmd, () => resolve());
         });
 
-        // Jeda mikro 8 milidetik agar keyboard Samsung memproses karakter secara berurutan
+        // Jeda mikro 8 milidetik anti-typo
         await delay(8); 
     }
-    log.success("Transfer data via USB selesai! Semua teks terketik sempurna.");
+    log.success("Transfer data selesai! Semua teks terketik sempurna tanpa typo.");
 }
 
 function pemicu_pesan() {
     let nomor_darurat = config.NOMOR_TELFON;
-    if(nomor_darurat.startsWith('0')) {
+    if (!nomor_darurat) {
+        log.error("NOMOR_TELFON tidak ditemukan di config!");
+        return;
+    }
+    if (nomor_darurat.startsWith('0')) {
         nomor_darurat = '62' + nomor_darurat.slice(1);
     }
 
+    const targetDevice = config.CONNECTED_DEVICE_WA || 'RF8M82DNY8Y';
     const whatsappJid = `${nomor_darurat}@s.whatsapp.net`;
-    const link_lokasi = "http://googleusercontent.com/maps.google.com/?q=-6.2574,106.6183";
-    
-    // Teks mentah utuh lengkap dengan tanda baca asli
+    const link_lokasi = "https://www.google.com/maps?q=-6.2574,106.6183";
     const pesan_mentah = `PESAN INI MERUPAKAN PESAN OTOMATIS DARI SISTEM, terdapat sebuah tindak kejahatan di lokasi ini TOLONG SEGERA KE LOKASI YANG DI BERIKAN! ${link_lokasi}`;
 
-    log.info("Membuka chat WhatsApp via Android Component Intent...");
-    const cmdOpenChat = `adb shell am start -n com.whatsapp/.Conversation -a android.intent.action.SENDTO --es jid "${whatsappJid}"`;
-    
+    log.info(`Membuka chat WhatsApp di device [${targetDevice}] via Android Component Intent...`);
+    const cmdOpenChat = `adb -s ${targetDevice} shell am start -n com.whatsapp/.Conversation -a android.intent.action.SENDTO --es jid "${whatsappJid}"`;
+
     exec(cmdOpenChat, (err) => {
-        if (err) return log.error("Gagal membuka chat WhatsApp", err.message);
+        if (err) {
+            log.error("Gagal membuka chat WhatsApp lewat component langsung, coba fallback...", err.message);
+            // Fallback: pakai URI wa.me lewat browser intent (Tetap pakai flag -s)
+            const cmdFallback = `adb -s ${targetDevice} shell am start -a android.intent.action.VIEW -d "https://wa.me/${nomor_darurat}"`;
+            exec(cmdFallback, (fallbackErr) => {
+                if (fallbackErr) return log.error("Fallback juga gagal", fallbackErr.message);
+                log.success("Fallback WhatsApp (wa.me) berhasil dibuka!");
+                setTimeout(() => lanjutkanKetikDanKirim(pesan_mentah), 2500);
+            });
+            return;
+        }
         log.success("WhatsApp room chat terbuka!");
-
-        // Jeda 2.5 detik biar chat room WhatsApp stabil & siap menerima input
-        setTimeout(async () => {
-            
-            // 🚀 Jalankan pengetikan dengan transfer data terkontrol via kabel
-            await ketikPesanPresisi(pesan_mentah);
-
-            // Jeda 800ms setelah mengetik selesai, langsung hajar ENTER buat kirim
-            setTimeout(() => {
-                log.info("Menekan tombol kirim...");
-                const cmdKirim = `adb shell input keyevent 66`;
-                exec(cmdKirim, (err) => {
-                    if (err) return log.error("Gagal mengirim", err.message);
-                    log.success("✅ [SUKSES TOTAL] Pesan sukses terkirim rapi dan presisi via USB!");
-                });
-            }, 800);
-            
-        }, 2500); 
+        setTimeout(() => lanjutkanKetikDanKirim(pesan_mentah), 2500);
     });
+}
+
+function lanjutkanKetikDanKirim(pesan_mentah) {
+    const targetDevice = config.CONNECTED_DEVICE_WA || 'RF8M82DNY8Y';
+    (async () => {
+        await ketikPesanPresisi(pesan_mentah);
+        setTimeout(() => {
+            log.info("Menekan tombol kirim...");
+            exec(`adb -s ${targetDevice} shell input keyevent 66`, (err) => {
+                if (err) return log.error("Gagal mengirim", err.message);
+                log.success("✅ [SUKSES TOTAL] Pesan sukses terkirim rapi dan presisi via USB!");
+            });
+        }, 800);
+    })();
 }
 
 function pemicu_telfon() {
     const nomor_darurat = config.NOMOR_TELFON;
-    
-    log.info("Menutup sisa aplikasi dialer lama...");
-    exec(`adb shell am force-stop com.samsung.android.dialer`, () => {
-        
-        log.info("Membuka aplikasi dialer HP via adb...");
-        const cmd_telfon = `adb shell am start -a android.intent.action.DIAL`;
+    if (!nomor_darurat) {
+        log.error("NOMOR_TELFON tidak ditemukan di config!");
+        return;
+    }
+
+    // Menggunakan device yang terdeteksi (Bisa disesuaikan nanti kalau HP ke-2 terhubung)
+    const targetDevice = config.CONNECTED_DEVICE_TELP || 'RF8M82DNY8Y';
+
+    log.info(`Menutup sisa aplikasi dialer lama di device [${targetDevice}]...`);
+    exec(`adb -s ${targetDevice} shell am force-stop com.samsung.android.dialer`, () => {
+
+        log.info(`Membuka aplikasi dialer HP [${targetDevice}] via adb...`);
+        const cmd_telfon = `adb -s ${targetDevice} shell am start -a android.intent.action.DIAL`;
 
         exec(cmd_telfon, (err) => {
-            if (err){
+            if (err) {
                 log.error("Gagal membuka aplikasi dialer", err.message);
                 return;
             }
 
             setTimeout(() => {
                 log.info(`Mengetik nomor target: ${nomor_darurat}...`);
-                exec(`adb shell input text ${nomor_darurat}`, (err) => {
-                    if (err){
+                exec(`adb -s ${targetDevice} shell input text ${nomor_darurat}`, (err) => {
+                    if (err) {
                         log.error("Gagal mengetik nomor: ", err.message);
                         return;
                     }
 
                     setTimeout(() => {
                         log.info("Menekan tombol telefon (CALL)...");
-                        exec(`adb shell input keyevent 5`, (err) => {
+                        exec(`adb -s ${targetDevice} shell input keyevent 5`, (err) => {
                             if (err) {
                                 log.error("Gagal menekan tombol: ", err.message);
                                 return;
                             }
                             log.success("Panggilan keluar berhasil dipicu!");
 
+                            // Kirim pesan WA SETELAH panggilan benar-benar berjalan
                             setTimeout(() => {
-                                log.info("Telepon berjalan, mengalihkan ke proses kirim pesan...");
+                                log.info("Panggilan sedang berjalan, mengirim pesan WhatsApp di background...");
                                 pemicu_pesan();
-                            }, 500);
+                            }, 4000); 
                         });
-                    }, 400); 
+                    }, 400);
                 });
-            }, 500); 
+            }, 500);
         });
     });
 }
