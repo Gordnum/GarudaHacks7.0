@@ -10,36 +10,51 @@ function pemicu_pesan() {
         nomor_darurat = '62' + nomor_darurat.slice(1);
     }
 
-    const pesan_template = "PESAN INI MERUPAKAN PESAN OTOMATIS DARI SISTEM, terdapat sebuah tindak kejahatan di lokasi ini TOLONG SEGERA KE LOKASI YANG DI BERIKAN!";
-    const pesan_encoded = encodeURIComponent(pesan_template);
+    // Menggunakan format JID resmi WhatsApp untuk Android Intent
+    const whatsappJid = `${nomor_darurat}@s.whatsapp.net`;
+    
+    // Hilangkan tanda khusus (seperti !) agar string aman di-input via shell
+    const pesan_template = "PESAN INI MERUPAKAN PESAN OTOMATIS DARI SISTEM terdapat sebuah tindak kejahatan di lokasi ini TOLONG SEGERA KE LOKASI YANG DI BERIKAN";
 
-    log.info("Membuka WhatsApp dan menempelkan pesan secepat kilat...");
+    log.info("Membuka chat WhatsApp via Android Component Intent...");
 
-    // 💡 GANTI PAKAI INI MAS RUSDI! Menggunakan skema whatsapp:// dan flag -n langsung ke komponen WhatsApp biar anti-meleset
-    const cmd_wa = `adb -s localhost:5555 shell am start -a android.intent.action.VIEW -d "whatsapp://send?phone=${nomor_darurat}&text=${pesan_encoded}"`;
+    // 💡 SOLUSI UTAMA: Paksa masuk langsung ke komponen Conversation (Room Chat) target secara spesifik
+    const cmd_wa = `adb -s localhost:5555 shell am start -n com.whatsapp/.Conversation -a android.intent.action.SENDTO --es jid "${whatsappJid}"`;
     
     exec(cmd_wa, (err) => {
         if (err) {
             log.error("Gagal membuka whatsapp", err.message);
             return;
         }
-        log.success("WhatsApp terbuka dengan pesan instan!");
+        log.success("WhatsApp room chat terbuka!");
         
-        // Jeda 1 detik (1000ms) agar transisi layar HP Samsung kamu stabil ke room chat
+        // Kasih jeda 2 detik (2000ms) agar room chat target benar-benar render sempurna
         setTimeout(() => {
-            log.info("Menembakkan tombol kirim...");
+            log.info("Mengetik pesan darurat...");
             
-            // Mengirimkan navigasi tombol kirim otomatis
-            const kirim_cepat_cmd = `adb -s localhost:5555 shell "input keyevent 22 && input keyevent 22 && input keyevent 66"`;
+            // Masukkan teks pesan langsung ke kolom input chat yang aktif
+            const cmd_ketik = `adb -s localhost:5555 shell "input text '${pesan_template}'"`;
             
-            exec(kirim_cepat_cmd, (err) => {
+            exec(cmd_ketik, (err) => {
                 if (err) {
-                    log.error("Gagal mengirim", err.message);
+                    log.error("Gagal mengetik pesan", err.message);
                     return;
                 }
-                log.success("✅ Pesan WhatsApp sukses terkirim secepat kilat!");
+                log.success("Pesan terketik otomatis!");
+
+                // Jeda 800ms setelah mengetik, baru hajar tombol kirim (Keyevent 66 / ENTER)
+                setTimeout(() => {
+                    log.info("Menekan tombol kirim...");
+                    exec(`adb -s localhost:5555 shell input keyevent 66`, (err) => {
+                        if (err) {
+                            log.error("Gagal menekan tombol kirim", err.message);
+                            return;
+                        }
+                        log.success("✅ Pesan WhatsApp sukses terkirim dan pas sasaran!");
+                    });
+                }, 800);
             });
-        }, 1000); 
+        }, 2000); 
     });
 }
 
