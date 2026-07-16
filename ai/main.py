@@ -8,6 +8,7 @@ from action import ActionRecognizer
 from threat import ThreatEngine
 from ui import UI
 from detector import Detector
+from recorder import IncidentRecorder
 
 # Untuk buka window
 cap = cv2.VideoCapture(0)
@@ -26,6 +27,7 @@ actionRecognizer = ActionRecognizer()
 threatEngine = ThreatEngine()
 ui = UI()
 detector = Detector()
+recorder = IncidentRecorder()
 
 prevTime = time.time()
 
@@ -33,9 +35,15 @@ while True:
     ret, frame = cap.read()
 
     if not ret:
+        break
+
+    rawFrame = frame.copy()
+
+    if not ret:
         print("Frame gagal")
         break
 
+    # Membuat timestamp dalam ms
     timestamp_ms = int(time.time() * 1000)
 
     frame, detectedPeople = pose.detect(frame, timestamp_ms)
@@ -77,13 +85,14 @@ while True:
 
     if highThreat:
         ui.drawAlarm(frame)
+        recorder.save(rawFrame, people)
         
     cv2.imshow("Camera", frame)
 
     key = cv2.waitKey(1)
 
     # Press 'ESC' untuk menutup kamera
-    if key == 27:
+    if key == 27:  
         break
 
 cap.release()

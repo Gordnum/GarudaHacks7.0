@@ -57,6 +57,7 @@ class PosesEstimator:
 
                 bbox = (x1, y1, x2, y2)
 
+                '''
                 # Draw Skeleton
                 for start_idx, end_idx in self.POSE_CONNECTIONS:
 
@@ -81,6 +82,7 @@ class PosesEstimator:
                         (0, 0, 255),
                         -1
                     )
+                '''
                 
                 # Create Person
                 person = Person(
