@@ -125,16 +125,26 @@ async function pemicu_telfon() {
         return;
     }
 
-    log.info(`[TELP] Memulai panggilan langsung ke ${nomor_darurat}...`);
+    log.info(`[TELP] Membuka dialer dengan nomor target: ${nomor_darurat}...`);
     
-    const cmdCall = `adb shell am start -a android.intent.action.CALL -d tel:${nomor_darurat}`;
-    const callRes = await jalankanCommand(cmdCall);
+    const cmdOpenDialer = `adb shell am start -a android.intent.action.DIAL -d tel:${nomor_darurat}`;
+    const dialerRes = await jalankanCommand(cmdOpenDialer);
 
-    if (!callRes.sukses) {
-        log.error("Gagal melakukan panggilan langsung", callRes.error);
-    } else {
-        log.success("Panggilan keluar berhasil dipicu!");
+    if (!dialerRes.sukses) {
+        log.error("Gagal membuka aplikasi dialer", dialerRes.error);
+        return;
     }
+
+    setTimeout(async () => {
+        log.info("[TELP] Menekan tombol panggil otomatis...");
+        const callRes = await jalankanCommand(`adb shell input keyevent 5`);
+        
+        if (callRes.sukses) {
+            log.success("✅ Panggilan telepon berhasil dipicu!");
+        } else {
+            log.error("Gagal memicu panggilan suara", callRes.error);
+        }
+    }, 800);
 }
 
 module.exports = { pemicu_telfon, pemicu_pesan };
