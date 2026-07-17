@@ -86,7 +86,7 @@ async function pemicu_pesan(filepath) {
         await execute_command(cmd_wadirect);
     }
 
-    // Jeda 3 detik agar layar preview gambar WA terbuka dan merender penuh (ngeload) sebelum mulai ngetik
+    // Jeda 3 detik agar layar preview gambar WA terbuka dan merender penuh sebelum mulai ngetik
     setTimeout(async () => {
         log.info("Mulai mengetik pesan di kolom caption...");
         await write_message(pesan_wa);
@@ -96,17 +96,24 @@ async function pemicu_pesan(filepath) {
         setTimeout(async () => {
             log.info("Menekan tombol kirim otomatis...");
             
-            // 1. Eksekusi Enter standar menggunakan keyevent
-            const kirim = await execute_command(`adb shell input keyevent 66`);
-            
-            // 2. Eksekusi Pointer Tap dengan koordinat presisi HP Anda
             if (filepath) {
-                // Mengeksekusi ketukan langsung pada X=1330, Y=2800
-                await execute_command(`adb shell input tap 1330 2800`);
-            }
-
-            if (kirim.sukses) {
-                log.success("Rangkaian darurat selesai dieksekusi!");
+                // KHUSUS FOTO + CAPTION:
+                // Hilangkan keyevent 66 agar teks tidak terkirim terpisah.
+                // Langsung gunakan tap ke tombol panah hijau WA di koordinat 1330 2800.
+                const kirimFoto = await execute_command(`adb shell input tap 1330 2800`);
+                if (kirimFoto.sukses) {
+                    log.success("Foto beserta caption berhasil dikirim serentak!");
+                } else {
+                    log.error("Gagal menekan tombol kirim foto", kirimFoto.error);
+                }
+            } else {
+                // KHUSUS TEKS SAJA (Jika kebetulan tidak ada foto):
+                const kirimTeks = await execute_command(`adb shell input keyevent 66`);
+                if (kirimTeks.sukses) {
+                    log.success("Pesan darurat teks berhasil dikirim!");
+                } else {
+                    log.error("Gagal mengirim pesan teks", kirimTeks.error);
+                }
             }
         }, 500);
     }, 3000); 
