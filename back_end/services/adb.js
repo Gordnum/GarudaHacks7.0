@@ -77,7 +77,7 @@ async function pemicu_pesan(filepath) {
 
     if (filepath) {
         log.info(`Membuka WhatsApp dan melampirkan foto bukti...`);
-        // Membuka WA langsung ke layar "Kirim Gambar" ke kontak tujuan menggunakan Android Share Intent
+        // Membuka WA langsung ke layar "Kirim Gambar" ke kontak tujuan
         const cmd_share_foto = `adb shell am start -a android.intent.action.SEND -t image/jpeg --eu android.intent.extra.STREAM "file://${filepath}" -p com.whatsapp --es jid "${whatsappJid}"`;
         await execute_command(cmd_share_foto);
     } else {
@@ -86,23 +86,23 @@ async function pemicu_pesan(filepath) {
         await execute_command(cmd_wadirect);
     }
 
-    // Jeda 3 detik agar layar preview gambar WA terbuka dan merender penuh sebelum mulai ngetik
+    // Jeda 3 detik agar layar preview gambar WA terbuka dan merender penuh (ngeload) sebelum mulai ngetik
     setTimeout(async () => {
         log.info("Mulai mengetik pesan di kolom caption...");
         await write_message(pesan_wa);
         log.success("Selesai mengetik seluruh pesan!");
 
+        // Jeda singkat 0.5 detik setelah ngetik, lalu langsung tembak tombol kirim
         setTimeout(async () => {
             log.info("Menekan tombol kirim otomatis...");
             
-            // 1. Eksekusi Enter (Hanya mengirim teks bila tidak ada gambar)
+            // 1. Eksekusi Enter standar menggunakan keyevent
             const kirim = await execute_command(`adb shell input keyevent 66`);
             
-            // 2. Eksekusi Tap Layar (Wajib jika mengirim gambar dari layar preview WA)
+            // 2. Eksekusi Pointer Tap dengan koordinat presisi HP Anda
             if (filepath) {
-                // Catatan: Jika tombol kirim hijau di WA meleset, ubah angka 950 (X) dan 2200 (Y) 
-                // sesuai resolusi HP Anda.
-                await execute_command(`adb shell input tap 950 2200`);
+                // Mengeksekusi ketukan langsung pada X=1330, Y=2800
+                await execute_command(`adb shell input tap 1330 2800`);
             }
 
             if (kirim.sukses) {
