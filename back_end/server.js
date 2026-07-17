@@ -7,7 +7,8 @@ const adb = require('./services/adb'); // Impor modul adb
 const log = require('./services/logger');
 
 // Naikkan limit JSON untuk menerima file base64 gambar
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.post('/fetch-signal', async (req, res) => {
     const { score, level, action, evidence_b64 } = req.body;
