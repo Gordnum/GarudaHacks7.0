@@ -11,11 +11,14 @@ from ui import UI
 from detector import Detector
 from recorder import IncidentRecorder
 
-# Endpoint URL untuk menembak Server Node.js
-NODEJS_URL = "http://172.25.145.73:3000/fetch-signal"# Untuk buka window
+NODEJS_URL = "http://172.25.145.73:3000/fetch-signal"
+
+# Inisialisasi variabel untuk cooldown laporan (dalam detik)
+COOLDOWN_LAPORAN = 120  
+terakhir_lapor = 0      
+
 cap = cv2.VideoCapture(0)
 
-# Set resolusi window
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
@@ -42,7 +45,6 @@ while True:
 
     rawFrame = frame.copy()
 
-    # Membuat timestamp dalam ms
     timestamp_ms = int(time.time() * 1000)
 
     frame, detectedPeople = pose.detect(frame, timestamp_ms)
@@ -54,33 +56,36 @@ while True:
     detector.assignObjects(people, detections)
 
     highThreat = False
+    waktu_sekarang = time.time()
 
-    # Result for the rig (VERY IMPORTANT)
     for person in people:
-        # 1. Kenali aksi (mengembalikan objek Enum)
         action = actionRecognizer.recognize(person)
         
-        # 2. Update skor ancaman dan hitung level kategorinya
         score = threatEngine.update(person, action)
-        level = threatEngine.level(score) # Posisinya dipindah ke sini agar variabel 'level' terdefinisi
+        level = threatEngine.level(score)
 
         if score >= 80:
             highThreat = True
 
-        # 3. Jembatan EAI: Kirim sinyal ke Node.js jika mendeteksi HIGH atau CRITICAL
         if level in ["HIGH", "CRITICAL"]:
-            payload = {
-                "score": float(score),
-                "level": level,
-                "action": str(action.value) # Mengambil string bersih seperti "Punching"
-            }
-            
-            try:
-                # Mengirim data POST ke Node.js dengan timeout 1 detik agar kamera tidak patah-patah
-                response = requests.post(NODEJS_URL, json=payload, timeout=1)
-                print(f"[Bridge] Sinyal ancaman dikirim! Status Server Node.js: {response.status_code}")
-            except requests.exceptions.RequestException as e:
-                print(f"[Bridge] Gagal terhubung ke server Node.js: {e}")
+            # Cek apakah durasi cooldown 2 menit sudah terpenuhi
+            if waktu_sekarang - terakhir_lapor >= COOLDOWN_LAPORAN:
+                payload = {
+                    "score": float(score),
+                    "level": level,
+                    "action": str(action.value)
+                }
+                
+                try:
+                    response = requests.post(NODEJS_URL, json=payload, timeout=1)
+                    print(f"[Bridge] Sinyal ancaman dikirim! Status Server Node.js: {response.status_code}")
+                    # Update timestamp waktu berhasil lapor
+                    terakhir_lapor = waktu_sekarang 
+                except requests.exceptions.RequestException as e:
+                    print(f"[Bridge] Gagal terhubung ke server Node.js: {e}")
+            else:
+                sisa_waktu = int(COOLDOWN_LAPORAN - (waktu_sekarang - terakhir_lapor))
+                print(f"[Bridge] Ancaman terdeteksi, tapi lapor tertahan cooldown. Sisa waktu: {sisa_waktu} detik")
 
         print(f"Person {person.id}: {action.value}, threat score: {score}")
 
@@ -104,10 +109,9 @@ while True:
 
     key = cv2.waitKey(1)
 
-    # Press 'ESC' untuk menutup kamera
     if key == 27:  
         break
 
 cap.release()
 pose.close()
-cv2.destroyAllWindows() 
+cv2.destroyAllWindows()
