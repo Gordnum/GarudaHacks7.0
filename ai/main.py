@@ -2,13 +2,16 @@
 
 import cv2
 import time
+import requests
 from pose import PosesEstimator
 from person_manager import PersonManager
-from action import ActionRecognizer
+from action import ActionRecognizer, Action
 from threat import ThreatEngine
 from ui import UI
 from detector import Detector
 from recorder import IncidentRecorder
+
+NODEJS_URL = "http://localhost:3000/fetch-signal"
 
 # Untuk buka window
 cap = cv2.VideoCapture(0)
@@ -20,6 +23,7 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 if not cap.isOpened():
     print("Camera tidak bisa dibuka")
     exit()
+
 
 pose = PosesEstimator(model_path = 'pose_landmarker.task', num_poses = 2)
 personManager = PersonManager()
@@ -60,6 +64,20 @@ while True:
 
         if score >= 80:
             highThreat = True
+
+        if level in ["HIGH", "CRITICAL"]:
+            payload = {
+                "score": float(score),
+                "level": level,
+                "action": str(action.name if hasattr(action, 'name') else action)
+            }
+            
+            try:
+                # Mengirim data POST ke Node.js
+                response = requests.post(NODEJS_URL, json=payload, timeout=1)
+                print(f"[Bridge] Sinyal ancaman dikirim! Status Server: {response.status_code}")
+            except requests.exceptions.RequestException as e:
+                print(f"[Bridge] Gagal terhubung ke server Node.js: {e}")
 
         print(f"Person {person.id}: {action.value}, threat score: {score}")
 
