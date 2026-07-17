@@ -3,6 +3,7 @@
 import cv2
 import time
 import requests
+import base64
 from pose import PosesEstimator
 from person_manager import PersonManager
 from action import ActionRecognizer, Action
