@@ -68,7 +68,7 @@ while True:
         if score >= 80:
             highThreat = True
 
-        if level in ["HIGH", "CRITICAL"]:
+        if level == "CRITICAL":
             # Cek apakah durasi cooldown laporan sudah terpenuhi
             if waktu_sekarang - terakhir_lapor >= COOLDOWN_LAPORAN:
                 

@@ -14,7 +14,7 @@ class IncidentRecorder:
         os.makedirs(self.outputDIR, exist_ok=True)
 
         # minimal jeda antar screenshot
-        self.cooldown = 5
+        self.cooldown = 20
 
         self.lastCapture = 0
 
