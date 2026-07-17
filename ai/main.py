@@ -12,7 +12,7 @@ from detector import Detector
 from recorder import IncidentRecorder
 
 # Endpoint URL untuk menembak Server Node.js
-NODEJS_URL = "http://172.21.202.136:3000/fetch-signal"
+NODEJS_URL = "http://192.168.17.212:3000/fetch-signal"
 # Untuk buka window
 cap = cv2.VideoCapture(0)
 
