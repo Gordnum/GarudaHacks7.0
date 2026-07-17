@@ -1,27 +1,39 @@
 const config = require('../config/device');
-const { pemicu_telfon } = require('./adb'); // Pastikan impor fungsi ini benar
+const adb = require('./adb'); 
 const log = require('./logger');
 
 function test() {
-    let nilaiSensor = 0;
-    let sudahDipicu = false;
-    log.info("\nSIMULASI SENSOR DIMULAI");
-    log.alert(`Batas Maksimal set di angka: ${config.BATAS_MAKSIMAL}`);
+    let sensors_score = 0;
+    let trigger = false;
+    log.info("\nSIMULASI THREATS AI");
+    
+    // Memastikan mengambil BATAS_MAKSIMAL dari config/device.js
+    log.alert(`Batas maksimal score di angka: ${config.BATAS_MAKSIMAL}`);
     
     const intervalId = setInterval(() => {
-        if (sudahDipicu) {
+        if (trigger) {
             clearInterval(intervalId);
             return;
         }
 
-        nilaiSensor += 10;
-        log.info(`[SIMULASI] Nilai Sensor Saat Ini: ${nilaiSensor}`);
+        sensors_score += 10;
+        log.info(`Nilai Sensor Saat Ini: ${sensors_score}`);
 
-        if (nilaiSensor >= config.BATAS_MAKSIMAL) {
-            sudahDipicu = true;
+        if (sensors_score >= config.BATAS_MAKSIMAL) {
+            trigger = true;
             clearInterval(intervalId);
-            log.alert("Threshold melebihi batas, BERSIAP MENELFON\n");
-            pemicu_telfon(); // Memanggil fungsi dari adb.js yang benar
+            
+            log.alert("Nilai score melebihi batas, ANCAMAN!\n");
+            
+            try {
+                if (adb && typeof adb.pemicu_telfon === 'function') {
+                    adb.pemicu_telfon();
+                } else {
+                    log.error("Fungsi pemicu_telfon tidak ditemukan atau bermasalah");
+                }
+            } catch (err) {
+                log.error("Gagal menjalankan fungsi pemicu_telfon", err.message);
+            }
         }
     }, 1000);
 }
