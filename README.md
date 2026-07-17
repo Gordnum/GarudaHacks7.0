@@ -22,14 +22,14 @@ ThreatVision, ThreatVision merupakan sistem sekuritas yang memanfaatkan kamera C
 7. Hal ini akan mengakumulasikan skor ancaman setiap orang berdasarkan aksi, objek yang dibawa, serta aturan (rule-based), kemudian menentukan level ancaman (Low, Medium, High, atau Critical).
 8. Antarmuka (UI) menampilkan hasil deteksi secara real-time, dan ketika level ancaman mencapai Critical, sistem membunyikan alarm serta menyimpan screenshot sebagai barang bukti.
 9. Foto kegiatan (screenshot) yang mencurigakan itu akan di pecah menjadi teks yang sangat panjang, hal ini memungkinkan karena sistem menggunakan fungsi base64 encode yang memungkinkan proses encode gambar. 
-10. Hasil dari encode ini kemudian di bungkus kedalam JSON lalu di kirim melalui jaringan ke Termux yang di setting lewat HP
-11. Server express kemudian menerima paket JSON dan mendecode paket tersebut menjadi gambar yang dapat di lihat melalui Whatsapp
+10. Hasil dari encode ini kemudian di bungkus kedalam JSON lalu di kirim melalui jaringan ke Termux yang di setting lewat HP.
+11. Server express kemudian menerima paket JSON dan mendecode paket tersebut menjadi gambar yang dapat di lihat melalui Whatsapp.
 12. Selain foto, terdapat juga teks yang di tulis menggunakan script ADB ke dalam handphone itu sendiri. 
 13. Melengkapi teks tersebut, sistem juga di lengkapi dengan auto generating google map link. 
-14. Sistem memanfaatkan ip-api untuk mengambil lokasi paling akurat dari posisi user yang kemudian di ubah menjadi lattitude dan juga longitudinal
+14. Sistem memanfaatkan ip-api untuk mengambil lokasi paling akurat dari posisi user yang kemudian di ubah menjadi lattitude dan juga longitudinal.
 15. Kedua variabel tersebut kemudian di ubah menjadi link google maps. 
 16. Setelah link gmaps sudah di bentuk, sistem memberikan keyevent untuk memaksa hp untuk keluar ke beranda dan pergi ke aplikasi dialer. 
-17. Script back-end kemudian membersihkan placeholder aplikasi dialer dengan keyevent 67, membuat placeholder bersih dan siap di gunakan
-18. Script memaksa handphone untuk mengetik nomor daraurat yang di incar 
-19. Begitu proses telfon di lakukan, otomatisasi di pindahkan ke whatsapp 
-20. Sistem akan langsung generate pesan untuk memperingati aparat keamanan terkait tindak kejahatan yang terjadi pada suatu daerah
+17. Script back-end kemudian membersihkan placeholder aplikasi dialer dengan keyevent 67, membuat placeholder bersih dan siap di gunakan.
+18. Script memaksa handphone untuk mengetik nomor daraurat yang di incar.
+19. Begitu proses telfon di lakukan, otomatisasi di pindahkan ke whatsapp.
+20. Sistem akan langsung generate pesan untuk memperingati aparat keamanan terkait tindak kejahatan yang terjadi pada suatu daerah.
