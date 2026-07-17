@@ -33,3 +33,8 @@ ThreatVision, ThreatVision merupakan sistem sekuritas yang memanfaatkan kamera C
 18. Script memaksa handphone untuk mengetik nomor daraurat yang di incar.
 19. Begitu proses telfon di lakukan, otomatisasi di pindahkan ke whatsapp.
 20. Sistem akan langsung generate pesan untuk memperingati aparat keamanan terkait tindak kejahatan yang terjadi pada suatu daerah.
+
+**AI USAGE**
+1. Claude : Problem solving untuk permasalahan yang berat, generate dummy code
+2. Chatgpt: Companion dalam diskusi program, generate dummy code
+3. Gemini : Companion dalam diskusi program, generate dummy code, menjelaskan konsep dan logika dalam program
