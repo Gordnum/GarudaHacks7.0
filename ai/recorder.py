@@ -24,7 +24,7 @@ class IncidentRecorder:
         now = time.time()
 
         if now - self.lastCapture < self.cooldown:
-            return
+            return None
 
         self.lastCapture = now
 
@@ -89,3 +89,4 @@ class IncidentRecorder:
         cv2.imwrite(path, image)
 
         print(f"[Evidence] Saved : {path}")
+        return path

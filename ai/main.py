@@ -68,18 +68,29 @@ while True:
             highThreat = True
 
         if level in ["HIGH", "CRITICAL"]:
-            # Cek apakah durasi cooldown 2 menit sudah terpenuhi
+            # Cek apakah durasi cooldown laporan sudah terpenuhi
             if waktu_sekarang - terakhir_lapor >= COOLDOWN_LAPORAN:
+                
+                # 1. Panggil recorder untuk mengambil foto sekarang juga
+                evidence_path = recorder.save(rawFrame, people, detections)
+                
+                # 2. Ubah gambar menjadi format Base64 string
+                evidence_b64 = ""
+                if evidence_path:
+                    with open(evidence_path, "rb") as img_file:
+                        evidence_b64 = base64.b64encode(img_file.read()).decode('utf-8')
+
+                # 3. Sisipkan gambar ke dalam payload
                 payload = {
                     "score": float(score),
                     "level": level,
-                    "action": str(action.value)
+                    "action": str(action.value),
+                    "evidence_b64": evidence_b64  # <-- Data gambar
                 }
                 
                 try:
-                    response = requests.post(NODEJS_URL, json=payload, timeout=1)
-                    print(f"[Bridge] Sinyal ancaman dikirim! Status Server Node.js: {response.status_code}")
-                    # Update timestamp waktu berhasil lapor
+                    response = requests.post(NODEJS_URL, json=payload, timeout=5) # Timeout dinaikkan sedikit karena membawa gambar
+                    print(f"[Bridge] Sinyal ancaman & Bukti dikirim! Status Node.js: {response.status_code}")
                     terakhir_lapor = waktu_sekarang 
                 except requests.exceptions.RequestException as e:
                     print(f"[Bridge] Gagal terhubung ke server Node.js: {e}")
