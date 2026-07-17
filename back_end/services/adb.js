@@ -78,29 +78,25 @@ async function pemicu_pesan(filepath) {
     if (filepath) {
         log.info(`Membuka WhatsApp, melampirkan foto, dan menyisipkan caption secara instan...`);
         
-        // Pembaruan: Menambahkan -e android.intent.extra.TEXT untuk mengisi caption otomatis
-        const cmd_share_foto = `adb shell am start -a android.intent.action.SEND -t image/jpeg --eu android.intent.extra.STREAM "file://${filepath}" -e android.intent.extra.TEXT "${pesan_wa}" -p com.whatsapp --es jid "${whatsappJid}"`;
+        // PERBAIKAN: Membungkus seluruh perintah "am start..." dengan tanda kutip ganda (")
+        // dan menggunakan kutip tunggal (') untuk isi string, agar spasi tidak mematahkan perintah ADB.
+        const cmd_share_foto = `adb shell "am start -a android.intent.action.SEND -t image/jpeg --eu android.intent.extra.STREAM 'file://${filepath}' -e android.intent.extra.TEXT '${pesan_wa}' -p com.whatsapp --es jid '${whatsappJid}'"`;
         await execute_command(cmd_share_foto);
         
-        // Jeda 2.5 detik agar UI layar preview WA terbuka penuh
+        // Jeda 3 detik agar UI layar preview WA terbuka penuh
         setTimeout(async () => {
-            log.info("Menggeser fokus UI dan menekan tombol kirim...");
+            log.info("Menekan tombol kirim foto + caption...");
             
-            // 1. Tombol TAB (61) memindahkan seleksi ke tombol Kirim (Panah Hijau)
-            await execute_command(`adb shell input keyevent 61`);
-            
-            // Jeda sangat singkat untuk memastikan transisi fokus UI
-            await new Promise(resolve => setTimeout(resolve, 200));
-            
-            // 2. Tombol ENTER (66) mengeksekusi tombol yang sedang terpilih
-            const kirimFoto = await execute_command(`adb shell input keyevent 66`);
+            // PERBAIKAN: Kita kembali menggunakan tap karena ini adalah cara yang paling anti-gagal
+            // untuk resolusi HP Anda, dibanding menggunakan sistem fokus UI (TAB + ENTER).
+            const kirimFoto = await execute_command(`adb shell input tap 1330 2800`);
             
             if (kirimFoto.sukses) {
-                log.success("Foto dan caption darurat berhasil dikirim instan!");
+                log.success("Foto dan caption darurat berhasil dikirim bersamaan!");
             } else {
-                log.error("Gagal mengirim perintah keyevent", kirimFoto.error);
+                log.error("Gagal mengirim perintah tap", kirimFoto.error);
             }
-        }, 2500);
+        }, 3000);
 
     } else {
         log.info(`Mencoba membuka room chat WhatsApp standar (Tanpa Foto)...`);
@@ -110,7 +106,6 @@ async function pemicu_pesan(filepath) {
         // Jika tidak ada foto, kita masih butuh ngetik perlahan
         setTimeout(async () => {
             log.info("Mengetik pesan darurat...");
-            // (Pastikan fungsi write_message masih ada di atas jika Anda ingin mempertahankan mode ini)
             await write_message(pesan_wa);
             
             setTimeout(async () => {
