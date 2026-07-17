@@ -19,7 +19,7 @@ class IncidentRecorder:
         self.lastCapture = 0
 
 
-    def save(self, rawFrame, people):
+    def save(self, rawFrame, people, detections):
 
         now = time.time()
 
@@ -32,7 +32,7 @@ class IncidentRecorder:
 
         image = rawFrame.copy()
 
-        # Informasi insiden
+        # Waktu insiden
         y = 30
 
         cv2.putText(
@@ -47,6 +47,8 @@ class IncidentRecorder:
 
         y += 30
 
+        # Pelaku insiden
+
         for person in people:
 
             cv2.putText(
@@ -56,6 +58,22 @@ class IncidentRecorder:
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.6,
                 (0, 0, 255),
+                2
+            )
+
+            y += 25
+            
+        # Objek yang terdeteksi
+
+        for det in detections:
+
+            cv2.putText(
+                image,
+                f'Object: {det["label"]} ({det["confidence"]:.2f})',
+                (10, y),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.6,
+                (0,0,255),
                 2
             )
 

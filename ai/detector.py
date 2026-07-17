@@ -5,105 +5,69 @@ import torch
 
 class Detector:
 
-    def __init__(self, model_path = "yolo11s.pt"):
+    def __init__(self):
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        self.model = YOLO(model_path)
+        # COCO model
+        self.model = YOLO("yolo11s.pt")
         self.model.to(self.device)
+
+        # Gun model
+        self.gunModel = YOLO("yolo11gun.pt")
+        self.gunModel.to(self.device)
 
         print(f"Running YOLO on {self.device}")
 
         self.globalClasses = {
-            "person",
-            "backpack"
-        }
-
-        self.handClasses = {
+            "backpack",
             "knife",
-            "cell phone"
         }
 
-        # ROI size sekitar wrist
-        self.handCropSize = 150
+        self.gunClasses = {
+            "pistol"
+        }
 
-
-    def detect(self, frame, people):
+    def detect(self, frame, people = None):
 
         detections = []
 
-        # Global detection (untuk benda besar)
-
         with torch.no_grad():
 
-            results = self.model(
+            # COCO detection
+            cocoResults = self.model(
                 frame,
-                conf=0.25,
-                device=self.device,
-                verbose=False
+                conf = 0.05,
+                device = self.device,
+                verbose = False
             )
 
-        detections.extend(
-            self.parseResults(results, self.globalClasses)
-        )
-
-        # Hand crops (untuk benda kecil)
-
-        for person in people:
-
-            x1, y1, x2, y2 = person.bbox
-
-            personHeight = y2 - y1
-
-            cropSize = max(
-                100,
-                int(personHeight * 0.5)
-            )
-
-            for hand in ["left_wrist", "right_wrist"]:
-
-                wrist = person.landmarks[hand]
-
-                detections.extend(
-                    self.detectHandROI(
-                        frame,
-                        wrist,
-                        cropSize
-                    )
+            detections.extend(
+                self.parseResults(
+                    cocoResults,
+                    self.globalClasses
                 )
-
-        return detections
-    
-
-    def detectHandROI(self, frame, wrist, crop_size):
-
-        h, w = frame.shape[:2]
-
-        cx = int(wrist.x * w)
-        cy = int(wrist.y * h)
-
-        s = crop_size // 2
-
-        x1 = max(0, cx - s)
-        y1 = max(0, cy - s)
-
-        x2 = min(w, cx + s)
-        y2 = min(h, cy + s)
-
-        roi = frame[y1:y2, x1:x2]
-
-        if roi.size == 0:
-            return []
-
-        with torch.no_grad():
-
-            results = self.model(
-                roi,
-                conf=0.10,
-                device=self.device,
-                verbose=False
             )
 
+            # Gun detection
+            gunResults = self.gunModel(
+                frame,
+                #conf = 0.01,
+                device = self.device,
+                verbose = False
+            )
+
+            detections.extend(
+                self.parseResults(
+                    gunResults,
+                    self.gunClasses
+                )
+            )
+
+        return self.removeDuplicates(detections)
+
+    def parseResults(self, results, allowedClasses):
+
         detections = []
 
         for result in results:
@@ -112,44 +76,9 @@ class Detector:
 
                 cls = int(box.cls[0])
 
-                label = self.model.names[cls]
+                label = result.names[cls]
 
-                if label not in self.handClasses:
-                    continue
-
-                rx1, ry1, rx2, ry2 = map(int, box.xyxy[0])
-
-                detections.append({
-
-                    "label": label,
-
-                    "confidence": float(box.conf[0]),
-
-                    # convert koordinat ROI ke koordinat gambar
-
-                    "bbox": (
-                        rx1 + x1,
-                        ry1 + y1,
-                        rx2 + x1,
-                        ry2 + y1
-                    )
-
-                })
-
-        return detections
-    
-    
-    def parseResults(self, results, allowed_classes):
-
-        detections = []
-
-        for result in results:
-            for box in result.boxes:
-
-                cls = int(box.cls[0])
-                label = self.model.names[cls]
-
-                if label not in allowed_classes:
+                if label not in allowedClasses:
                     continue
 
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
@@ -161,3 +90,85 @@ class Detector:
                 })
 
         return detections
+
+    def removeDuplicates(self, detections):
+
+        filtered = []
+
+        for det in detections:
+
+            duplicate = False
+
+            for existing in filtered:
+
+                if (
+                    det["label"] == existing["label"]
+                    and self.iou(det["bbox"], existing["bbox"]) > 0.5
+                ):
+
+                    duplicate = True
+
+                    if det["confidence"] > existing["confidence"]:
+                        existing.update(det)
+
+                    break
+
+            if not duplicate:
+                filtered.append(det)
+
+        return filtered
+
+    def assignObjects(self, people, detections):
+
+        for person in people:
+            person.objects.clear()
+
+        for obj in detections:
+
+            ox1, oy1, ox2, oy2 = obj["bbox"]
+
+            cx = (ox1 + ox2) / 2
+            cy = (oy1 + oy2) / 2
+
+            bestPerson = None
+            bestDistance = float("inf")
+
+            for person in people:
+
+                for hand in ["left_wrist", "right_wrist"]:
+
+                    wrist = person.landmarks[hand]
+
+                    wx = wrist.x * 1280
+                    wy = wrist.y * 720
+
+                    d = ((cx - wx)**2 + (cy - wy)**2) ** 0.5
+
+                    if d < bestDistance:
+                        bestDistance = d
+                        bestPerson = person
+
+            if bestPerson is not None and bestDistance < 150:
+                bestPerson.objects.append(obj)
+
+    def iou(self, boxA, boxB):
+
+        ax1, ay1, ax2, ay2 = boxA
+        bx1, by1, bx2, by2 = boxB
+
+        interX1 = max(ax1, bx1)
+        interY1 = max(ay1, by1)
+        interX2 = min(ax2, bx2)
+        interY2 = min(ay2, by2)
+
+        interArea = max(0, interX2 - interX1) * max(0, interY2 - interY1)
+
+        areaA = (ax2 - ax1) * (ay2 - ay1)
+        areaB = (bx2 - bx1) * (by2 - by1)
+
+        union = areaA + areaB - interArea
+
+        if union == 0:
+            return 0
+
+        return interArea / union

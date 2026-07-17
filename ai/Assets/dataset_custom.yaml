@@ -1,0 +1,6 @@
+train: C:\GitHub\GarudaHacks7.0\ai\Assets\train
+val: C:\GitHub\GarudaHacks7.0\ai\Assets\val
+
+nc: 1
+
+names: ["pistol"]

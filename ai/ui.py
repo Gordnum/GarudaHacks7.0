@@ -9,7 +9,7 @@ class UI:
 
         self.FONT = cv2.FONT_HERSHEY_SIMPLEX
 
-    # Main Draw
+    # Main draw
     def drawPerson(self, frame, person, level):
 
         self.drawBbox(frame, person)

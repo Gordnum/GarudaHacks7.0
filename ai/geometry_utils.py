@@ -6,9 +6,7 @@ class GeometryUtils:
 
     @staticmethod
     def distance(p1, p2):
-        """
-        Euclidean distance antara dua landmark.
-        """
+        # Euclidean distance antara dua landmark.
 
         dx = p1.x - p2.x
         dy = p1.y - p2.y
@@ -17,9 +15,8 @@ class GeometryUtils:
 
     @staticmethod
     def midpoint(p1, p2):
-        """
-        Titik tengah dua landmark.
-        """
+        # Titik tengah dua landmark.
+
         return (
             (p1.x + p2.x) / 2,
             (p1.y + p2.y) / 2
@@ -27,9 +24,7 @@ class GeometryUtils:
 
     @staticmethod
     def angle(a, b, c):
-        """
-        Menghitung sudut ABC dalam derajat.
-        """
+        # Menghitung sudut ABC dalam derajat.
 
         ba = (a.x - b.x, a.y - b.y)
         bc = (c.x - b.x, c.y - b.y)
@@ -76,9 +71,8 @@ class GeometryUtils:
 
     @staticmethod
     def isAbove(p1, p2):
-        """
-        Apakah p1 berada di atas p2?
-        """
+        # Apakah p1 berada di atas p2?
+
         return p1.y < p2.y
 
     @staticmethod
@@ -98,9 +92,7 @@ class GeometryUtils:
 
     @staticmethod
     def bodyCenter(person):
-        """
-        Titik tengah antara kedua pinggul.
-        """
+        # Titik tengah antara kedua pinggul.
 
         left = person.landmarks["left_hip"]
         right = person.landmarks["right_hip"]
@@ -109,10 +101,7 @@ class GeometryUtils:
     
     @staticmethod
     def bodySize(person):
-        """
-        Menghitung ukuran tubuh sebagai referensi normalisasi.
-        Menggunakan jarak bahu ke pinggul.
-        """
+        # Menghitung ukuran tubuh sebagai referensi normalisasi. Menggunakan jarak bahu ke pinggul.
 
         shoulder = GeometryUtils.shoulderCenter(person)
         hip = GeometryUtils.bodyCenter(person)
@@ -124,9 +113,7 @@ class GeometryUtils:
 
     @staticmethod
     def shoulderCenter(person):
-        """
-        Titik tengah antara kedua bahu.
-        """
+        # Titik tengah antara kedua bahu.
 
         left = person.landmarks["left_shoulder"]
         right = person.landmarks["right_shoulder"]

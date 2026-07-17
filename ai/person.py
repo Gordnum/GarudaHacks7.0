@@ -73,10 +73,12 @@ class Person:
 
     objects: List[dict] = field(default_factory = list)
 
+    detectedObjects: set = field(default_factory=set)
+
     def __post_init__(self):
         """
         Otomatis dipanggil setelah dataclass dibuat.
-        Mengubah List -> Dictionary.
+        Mengubah List menjadi Dictionary.
         """
         self.landmarks = {
             LANDMARK_NAMES[i]: landmark
@@ -121,3 +123,4 @@ class Person:
         self.threatScore = other.threatScore
         self.velocity = other.velocity.copy()
         self.objects = other.objects.copy()
+        self.detectedObjects = other.detectedObjects.copy()
