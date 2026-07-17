@@ -3,6 +3,7 @@ ThreatVision: AI-Driven Proactive Security System (KRMS)
 > “Keeping Real Time Monitoring Smart.”
 
 Overview
+
 ThreatVision(by KRMS) is an intelligent, embedded security monitoring system built for the Garuda Hacks competition. We are moving away from reactive "recording-only" CCTV towards a proactive system that detects, analyzes, and acts upon threats in real-time.
 
 ---
