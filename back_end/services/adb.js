@@ -76,47 +76,51 @@ async function pemicu_pesan(filepath) {
     const pesan_wa = `PESAN OTOMATIS DARI SISTEM: Terjadi sebuah kejahatan di lokasi yang diberikan, TOLONG SEGERA KE LOKASI: ${link_lokasi}`;
 
     if (filepath) {
-        log.info(`Membuka WhatsApp dan melampirkan foto bukti...`);
-        // Membuka WA langsung ke layar "Kirim Gambar" ke kontak tujuan
-        const cmd_share_foto = `adb shell am start -a android.intent.action.SEND -t image/jpeg --eu android.intent.extra.STREAM "file://${filepath}" -p com.whatsapp --es jid "${whatsappJid}"`;
+        log.info(`Membuka WhatsApp, melampirkan foto, dan menyisipkan caption secara instan...`);
+        
+        // Pembaruan: Menambahkan -e android.intent.extra.TEXT untuk mengisi caption otomatis
+        const cmd_share_foto = `adb shell am start -a android.intent.action.SEND -t image/jpeg --eu android.intent.extra.STREAM "file://${filepath}" -e android.intent.extra.TEXT "${pesan_wa}" -p com.whatsapp --es jid "${whatsappJid}"`;
         await execute_command(cmd_share_foto);
+        
+        // Jeda 2.5 detik agar UI layar preview WA terbuka penuh
+        setTimeout(async () => {
+            log.info("Menggeser fokus UI dan menekan tombol kirim...");
+            
+            // 1. Tombol TAB (61) memindahkan seleksi ke tombol Kirim (Panah Hijau)
+            await execute_command(`adb shell input keyevent 61`);
+            
+            // Jeda sangat singkat untuk memastikan transisi fokus UI
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // 2. Tombol ENTER (66) mengeksekusi tombol yang sedang terpilih
+            const kirimFoto = await execute_command(`adb shell input keyevent 66`);
+            
+            if (kirimFoto.sukses) {
+                log.success("Foto dan caption darurat berhasil dikirim instan!");
+            } else {
+                log.error("Gagal mengirim perintah keyevent", kirimFoto.error);
+            }
+        }, 2500);
+
     } else {
-        log.info(`Mencoba membuka room chat WhatsApp standar...`);
+        log.info(`Mencoba membuka room chat WhatsApp standar (Tanpa Foto)...`);
         const cmd_wadirect = `adb shell am start -n com.whatsapp/.Conversation -a android.intent.action.SENDTO --es jid "${whatsappJid}"`;
         await execute_command(cmd_wadirect);
-    }
 
-    // Jeda 3 detik agar layar preview gambar WA terbuka dan merender penuh sebelum mulai ngetik
-    setTimeout(async () => {
-        log.info("Mulai mengetik pesan di kolom caption...");
-        await write_message(pesan_wa);
-        log.success("Selesai mengetik seluruh pesan!");
-
-        // Jeda singkat 0.5 detik setelah ngetik, lalu langsung tembak tombol kirim
+        // Jika tidak ada foto, kita masih butuh ngetik perlahan
         setTimeout(async () => {
-            log.info("Menekan tombol kirim otomatis...");
+            log.info("Mengetik pesan darurat...");
+            // (Pastikan fungsi write_message masih ada di atas jika Anda ingin mempertahankan mode ini)
+            await write_message(pesan_wa);
             
-            if (filepath) {
-                // KHUSUS FOTO + CAPTION:
-                // Hilangkan keyevent 66 agar teks tidak terkirim terpisah.
-                // Langsung gunakan tap ke tombol panah hijau WA di koordinat 1330 2800.
-                const kirimFoto = await execute_command(`adb shell input tap 1330 2800`);
-                if (kirimFoto.sukses) {
-                    log.success("Foto beserta caption berhasil dikirim serentak!");
-                } else {
-                    log.error("Gagal menekan tombol kirim foto", kirimFoto.error);
-                }
-            } else {
-                // KHUSUS TEKS SAJA (Jika kebetulan tidak ada foto):
+            setTimeout(async () => {
                 const kirimTeks = await execute_command(`adb shell input keyevent 66`);
                 if (kirimTeks.sukses) {
-                    log.success("Pesan darurat teks berhasil dikirim!");
-                } else {
-                    log.error("Gagal mengirim pesan teks", kirimTeks.error);
+                    log.success("Pesan teks darurat berhasil dikirim!");
                 }
-            }
-        }, 500);
-    }, 3000); 
+            }, 500);
+        }, 2000);
+    }
 }
 
 module.exports = { pemicu_telfon, pemicu_pesan, execute_command };
