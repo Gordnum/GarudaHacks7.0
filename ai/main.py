@@ -35,13 +35,10 @@ while True:
     ret, frame = cap.read()
 
     if not ret:
+        print("Frame gagal")
         break
 
     rawFrame = frame.copy()
-
-    if not ret:
-        print("Frame gagal")
-        break
 
     # Membuat timestamp dalam ms
     timestamp_ms = int(time.time() * 1000)
@@ -52,19 +49,19 @@ while True:
 
     detections = detector.detect(frame, people)
 
+    detector.assignObjects(people, detections)
+
     highThreat = False
 
     # Result for the rig (VERY IMPORTANT)
     for person in people:
         action = actionRecognizer.recognize(person)
-        score = threatEngine.update(person, action, detections)
-        level = threatEngine.level(score)
-        frame = ui.drawPerson(frame, person, level)
+        score = threatEngine.update(person, action)
 
         if score >= 80:
             highThreat = True
 
-        print(f"Person {person.id}: {action.value}, threat score: {score}, level: {level}")
+        print(f"Person {person.id}: {action.value}, threat score: {score}")
 
     
     current = time.time()
@@ -78,14 +75,13 @@ while True:
     for person in people:
 
         level = threatEngine.level(person.threatScore)
-
         ui.drawPerson(frame, person, level)
 
     ui.drawFPS(frame, fps)
 
     if highThreat:
         ui.drawAlarm(frame)
-        recorder.save(rawFrame, people)
+        recorder.save(rawFrame, people, detections)
         
     cv2.imshow("Camera", frame)
 

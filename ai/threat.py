@@ -22,18 +22,23 @@ class ThreatEngine:
 
             Action.PUNCHING: 25,
 
-            Action.FALLING: 5,
+            Action.FALLING: -10,
 
             Action.UNKNOWN: 0
         }
 
         self.OBJECT_SCORES = {
             "knife": 50,
-            "backpack": 10,
-            "cell phone" : 10
+            "backpack": 20,
+            "pistol" : 90
         }
 
-    def update(self, person, action, detections):
+    def update(self, person, action):
+
+        # Hapus benda yang keluar/tidak terdetect kamera
+        currentLabels = {obj["label"] for obj in person.objects}
+
+        person.detectedObjects.intersection_update(currentLabels)
 
         score = person.threatScore
 
@@ -46,16 +51,26 @@ class ThreatEngine:
         # Object score
         labels = []
 
-        for obj in detections:
+        for obj in person.objects:
 
             label = obj["label"]
 
             labels.append(label)
 
-            score += self.OBJECT_SCORES.get(label, 0)
+            if label not in person.detectedObjects:
+
+                score += self.OBJECT_SCORES.get(label, 0)
+
+                person.detectedObjects.add(label)
 
         # Combination rules
         if action == Action.PUNCHING and "knife" in labels:
+            score += 30
+
+        if action == Action.PUNCHING and "backpack" in labels:
+            score += 30
+
+        if action == Action.PUNCHING and "pistol" in labels:
             score += 30
 
         if action == Action.RUNNING and "knife" in labels:
